@@ -1,0 +1,276 @@
+@import "bootstrap/dist/css/bootstrap.min.css";
+@import "bootstrap-icons/font/bootstrap-icons.css";
+
+/* ===== Material-ish cards ===== */
+.card.mat-card{
+  border: 0;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.08);
+}
+
+.mat-header{
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(0,0,0,.06);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mat-alert{
+  border: 0;
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.10);
+}
+
+
+h3.mat-title{
+  font-size: 1.05rem;
+  margin: 0;
+  font-weight: 700;
+}
+
+.btn-mat{
+  border-radius: 12px;
+  padding: .5rem .9rem;
+  box-shadow: 0 6px 18px rgba(0,0,0,.10);
+}
+
+/* ===== App Shell Layout (Topbar + Content + Right Sidebar) ===== */
+:root{
+  --sidebar-bg: #dc17ae;
+  --sidebar-bg-2: rgba(255,255,255,.12);
+  --sidebar-text: #ffffff;
+  --sidebar-muted: rgba(255,255,255,.80);
+  --sidebar-active: rgba(255,255,255,.20);
+  --topbar-h: 64px;
+
+  --sidebar-w: 300px;
+  --sidebar-w-collapsed: 88px;
+}
+
+.app-shell{
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr var(--sidebar-w);
+  grid-template-rows: var(--topbar-h) 1fr;
+  grid-template-areas:
+    "topbar topbar"
+    "content sidebar";
+}
+
+/* Topbar */
+.topbar{
+  grid-area: topbar;
+  height: var(--topbar-h);
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+  background: #fff;
+  border-bottom: 2px solid rgba(255,111,0,.18);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+}
+
+.topbar-left{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.company-logo{
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 12px;
+  box-shadow: 0 6px 16px rgba(0,0,0,.10);
+}
+
+.company-logo-fallback{
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  /*background: rgba(223,39,65,.10); */
+  color: #df2741;
+  box-shadow: 0 6px 16px rgba(0,0,0,.08);
+}
+
+.topbar-title .app-name{
+  font-weight: 800;
+  line-height: 1.05;
+}
+
+.topbar-title .company-name{
+  font-size: .86rem;
+  color: rgba(0,0,0,.55);
+  margin-top: 2px;
+}
+
+/* Content */
+.app-content{
+  grid-area: content;
+  min-width: 0;
+}
+
+/* Right Sidebar Desktop */
+.right-sidebar{
+  grid-area: sidebar;
+  position: sticky;
+  top: var(--topbar-h);
+  height: calc(100vh - var(--topbar-h));
+  display: flex;
+  align-self: start;
+}
+
+/* Sidebar */
+.sidebar-nav{
+  width: 100%;
+  height: 100%;
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  display:flex;
+  flex-direction: column;
+    overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sidebar-brand .brand-title{
+  display:flex;
+  align-items:center;
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+
+.sidebar-section-title{
+  font-size: .78rem;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  color: var(--sidebar-muted);
+  margin-bottom: 10px;
+}
+
+.sidebar-link{
+  display:flex;
+  align-items:center;
+  gap: 12px;
+  color: var(--sidebar-text);
+  text-decoration:none;
+  padding: 10px 10px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+}
+
+.sidebar-link:hover{
+  background: var(--sidebar-bg-2);
+  color: var(--sidebar-text);
+}
+
+.sidebar-link.active{
+  background: var(--sidebar-active);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+}
+
+.sidebar-link i{
+  font-size: 1.1rem;
+  width: 28px;
+  display:flex;
+  justify-content:center;
+}
+
+.sidebar-footer{
+  border-top: 1px solid rgba(255,255,255,.18);
+}
+
+.sidebar-user{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(255,255,255,.10);
+}
+
+.user-dot{
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.85);
+}
+
+.user-name{
+  font-weight: 700;
+  font-size: .95rem;
+  line-height: 1.1;
+}
+
+.user-email{
+  font-size: .82rem;
+  color: var(--sidebar-muted);
+  margin-top: 2px;
+}
+
+/* Offcanvas custom look */
+.sidebar-offcanvas{
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+}
+.sidebar-offcanvas .offcanvas-header{
+  border-bottom: 1px solid rgba(255,255,255,.18);
+}
+.sidebar-offcanvas .offcanvas-title{
+  color: var(--sidebar-text);
+  font-weight: 800;
+}
+
+.btn-close-white{
+  filter: invert(1) grayscale(100%);
+  opacity: .9;
+}
+
+
+/* ===== Collapsed sidebar (desktop) ===== */
+.app-shell.sidebar-collapsed{
+  grid-template-columns: 1fr var(--sidebar-w-collapsed);
+}
+
+.app-shell.sidebar-collapsed .sidebar-section-title,
+.app-shell.sidebar-collapsed .brand-text,
+.app-shell.sidebar-collapsed .link-text,
+.app-shell.sidebar-collapsed .user-info,
+.app-shell.sidebar-collapsed .sidebar-footer form button span{
+  display:none;
+}
+
+.app-shell.sidebar-collapsed .sidebar-link{
+  justify-content:center;
+  gap: 0;
+  padding: 12px 8px;
+}
+.app-shell.sidebar-collapsed .sidebar-link i{
+  font-size: 1.2rem;
+}
+
+.app-shell.sidebar-collapsed .sidebar-user{
+  justify-content:center;
+}
+
+/* ===== Responsive: on < lg, sidebar is offcanvas; content full width ===== */
+@media (max-width: 991.98px){
+  .app-shell{
+    grid-template-columns: 1fr;
+    grid-template-rows: var(--topbar-h) 1fr;
+    grid-template-areas:
+      "topbar"
+      "content";
+  }
+}
+
+.tooltip .tooltip-inner{
+  border-radius: 10px;
+  padding: .45rem .6rem;
+  font-weight: 600;
+}
