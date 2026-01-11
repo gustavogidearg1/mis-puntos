@@ -10,4 +10,6 @@ class Company extends Model
         'name','cuit','email','telefono','direccion','logo',
         'color_primario','color_secundario'
     ];
+
+
 }

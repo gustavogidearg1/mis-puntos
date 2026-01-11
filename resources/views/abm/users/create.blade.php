@@ -53,11 +53,17 @@
 
       <div class="col-md-6">
         <label class="form-label">Dirección</label>
+
         <input name="direccion"
-               class="form-control @error('direccion') is-invalid @enderror"
-               value="{{ old('direccion') }}">
-        @error('direccion') <div class="invalid-feedback">{{ $message }}</div> @enderror
+       autocomplete="street-address"
+       autocapitalize="off"
+       spellcheck="false"
+       class="form-control @error('direccion') is-invalid @enderror"
+       value="{{ old('direccion') }}">
+
+        @error('dirección') <div class="invalid-feedback">{{ $message }}</div> @enderror
       </div>
+
 
       {{-- =========================
            Ubicación (País/Prov/Loc)

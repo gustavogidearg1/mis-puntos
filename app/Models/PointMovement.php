@@ -6,10 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class PointMovement extends Model
 {
-    protected $fillable = [
-    'company_id','employee_user_id','business_user_id','created_by','confirmed_by','batch_id',
-    'type','points','money_amount','reference','note','occurred_at',
-    ];
+protected $fillable = [
+  'company_id','employee_user_id','business_user_id','created_by','confirmed_by','batch_id',
+  'type','points','money_amount','reference_id','reference','note','occurred_at',
+];
 
     protected $casts = [
         'occurred_at' => 'datetime',
@@ -44,5 +44,10 @@ class PointMovement extends Model
     public function confirmedBy()
 {
     return $this->belongsTo(User::class, 'confirmed_by');
+}
+
+public function pointReference()
+{
+    return $this->belongsTo(PointReference::class, 'reference_id');
 }
 }

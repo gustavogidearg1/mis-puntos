@@ -2,301 +2,268 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\PointImportBatch;
-use App\Models\PointMovement;
 use App\Models\User;
-use Carbon\Carbon;
+use App\Models\Company;
+use App\Models\PointMovement;
+use App\Models\PointImportBatch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class PointImportController extends Controller
 {
-    public function create()
+    public function __construct()
     {
-        return view('points.import.create');
+        $this->middleware(['auth', 'role:admin_sitio|admin_empresa']);
     }
 
-    /**
-     * PREVIEW: sube CSV, valida y muestra OK/Errores.
-     *
-     * CSV requerido:
-     *  - employee_cuil
-     *  - points
-     *  - occurred_at (YYYY-MM-DD o YYYY-MM-DD HH:MM)
-     * Opcionales:
-     *  - reference
-     *  - note
-     */
-    public function preview(Request $request)
+    public function create(Request $r)
     {
-        $request->validate([
-            'file' => ['required', 'file', 'mimes:csv,txt'],
+        $u = $r->user();
+        $isSiteAdmin = $u->hasRole('admin_sitio');
+
+        $companies = $isSiteAdmin
+            ? Company::query()->orderBy('name')->get()
+            : collect();
+
+        return view('points.import.create', [
+            'isSiteAdmin' => $isSiteAdmin,
+            'companies'   => $companies,
+        ]);
+    }
+
+    public function preview(Request $r)
+    {
+        $u = $r->user();
+        $isSiteAdmin = $u->hasRole('admin_sitio');
+
+        $data = $r->validate([
+            'company_id' => ['nullable','integer','exists:companies,id'], // solo admin_sitio
+            'file'       => ['required','file','mimes:csv,txt','max:5120'],
         ]);
 
-        $user = $request->user();
-        $companyId = $user->company_id ?? null;
+        $companyId = $isSiteAdmin
+            ? ((int)($data['company_id'] ?? 0) ?: (int)($u->company_id ?? 0))
+            : (int)$u->company_id;
 
-        if (!$companyId && !$user->hasRole('site_admin')) {
-            return back()->withErrors(['file' => 'No se detectó company_id en el usuario.']);
+        if (!$companyId) {
+            return back()->with('error', 'No se pudo determinar la empresa para la importación.');
         }
 
-        $path = $request->file('file')->store('imports/points', 'local');
-        $filename = basename($path);
+        // Guardar archivo temporal
+        $path = $r->file('file')->store('imports/points');
 
-        [$header, $rows] = $this->readCsv(Storage::disk('local')->path($path), 5000);
+        // Parse CSV
+        $fullPath = Storage::path($path);
+        $fh = fopen($fullPath, 'r');
 
-        if (empty($header)) {
-            return back()->withErrors(['file' => 'No se pudo leer el header del CSV.']);
+        if (!$fh) {
+            return back()->with('error', 'No se pudo leer el archivo.');
         }
 
-        $headerMap = array_flip($header);
-
-        foreach (['employee_cuil', 'points', 'occurred_at'] as $required) {
-            if (!isset($headerMap[$required])) {
-                return back()->withErrors(['file' => "Falta la columna obligatoria: {$required}."]);
-            }
+        $header = fgetcsv($fh);
+        if (!$header) {
+            fclose($fh);
+            return back()->with('error', 'CSV vacío o inválido.');
         }
 
-        $preview = [];
+        $header = array_map(fn($h) => trim((string)$h), $header);
+
+        $rows = [];
         $ok = 0;
         $err = 0;
+        $line = 1;
 
-        foreach ($rows as $i => $row) {
-            $line = $i + 2; // header = línea 1
+        while (($cols = fgetcsv($fh)) !== false) {
+            $line++;
+            if (count($cols) === 1 && trim((string)$cols[0]) === '') continue;
 
-            $cuilRaw   = trim((string)($row[$headerMap['employee_cuil']] ?? ''));
-            $pointsRaw = trim((string)($row[$headerMap['points']] ?? ''));
-            $occRaw    = trim((string)($row[$headerMap['occurred_at']] ?? ''));
-
-            $reference = isset($headerMap['reference']) ? trim((string)($row[$headerMap['reference']] ?? '')) : null;
-            $note      = isset($headerMap['note']) ? trim((string)($row[$headerMap['note']] ?? '')) : null;
-
-            $issues = [];
-
-            // CUIL/CUIT normalizado
-            $cuil = $this->digitsOnly($cuilRaw);
-            if ($cuil === '') {
-                $issues[] = 'employee_cuil vacío o inválido';
+            $row = [];
+            foreach ($header as $i => $key) {
+                $row[$key] = $cols[$i] ?? null;
             }
 
-            // points
-            $pointsNormalized = str_replace(',', '.', $pointsRaw);
-            if ($pointsRaw === '' || !is_numeric($pointsNormalized)) {
-                $issues[] = 'points no numérico';
-            }
+            $validation = $this->validateImportRow($row, $companyId, $isSiteAdmin, $u);
 
-            // occurred_at
-            $occurredAt = $this->parseDateTime($occRaw);
-            if (!$occurredAt) {
-                $issues[] = 'occurred_at inválida';
-            }
-
-            // lookup empleado (si todo ok)
-            if (empty($issues)) {
-                $q = User::query();
-
-                // si Admin Sitio luego querés permitir elegir empresa destino, acá se ajusta
-                if ($companyId) {
-                    $q->where('company_id', $companyId);
-                }
-
-                $employee = $q->where('cuil', $cuil)->first();
-
-                if (!$employee) {
-                    $issues[] = 'Empleado no encontrado (company_id + CUIL/CUIT)';
-                } else {
-                    if (!$employee->hasRole('empleado')) $issues[] = 'El usuario no es rol Empleado (empleado)';
-                    if ($employee->activo === false) $issues[] = 'Empleado inactivo';
-                }
-            }
-
-            $status = empty($issues) ? 'ok' : 'error';
-            if ($status === 'ok') $ok++; else $err++;
-
-            $preview[] = [
-                'line' => $line,
-                'employee_cuil' => $cuilRaw ?: '—',
-                'points' => $pointsRaw ?: '—',
-                'occurred_at' => $occRaw ?: '—',
-                'reference' => $reference ?: '—',
-                'note' => $note ?: '—',
-                'status' => $status,
-                'issues' => $issues,
+            $rows[] = [
+                'line'   => $line,
+                'row'    => $row,
+                'ok'     => $validation['ok'],
+                'error'  => $validation['error'],
+                'mapped' => $validation['mapped'], // ya resuelto employee_id, points signed, etc.
             ];
+
+            $validation['ok'] ? $ok++ : $err++;
+
+            if (count($rows) >= 5000) { // hard limit de preview
+                break;
+            }
         }
 
-        $batch = PointImportBatch::create([
-            'company_id' => $companyId ?? 0,
-            'created_by' => $user->id,
-            'filename' => $filename,
-            'status' => 'preview',
-            'rows_total' => count($preview),
-            'rows_ok' => $ok,
-            'rows_error' => $err,
-        ]);
+        fclose($fh);
 
+        // Guardar en sesión para commit
         session([
-            'points_import_batch_id' => $batch->id,
-            'points_import_path' => $path,
+            'points_import.path'      => $path,
+            'points_import.companyId' => $companyId,
+            'points_import.rows'      => $rows,
+            'points_import.ok'        => $ok,
+            'points_import.err'       => $err,
         ]);
 
         return view('points.import.preview', [
-            'batch' => $batch,
-            'preview' => $preview,
-            'header' => $header,
+            'companyId' => $companyId,
+            'path'      => $path,
+            'rows'      => $rows,
+            'ok'        => $ok,
+            'err'       => $err,
         ]);
     }
 
-    /**
-     * COMMIT: confirma y guarda movimientos (solo filas válidas).
-     */
-    public function commit(Request $request)
+    public function commit(Request $r)
     {
-        $request->validate([
-            'confirm' => ['required', 'in:1'],
+        $u = $r->user();
+
+        $path      = session('points_import.path');
+        $companyId = (int) session('points_import.companyId');
+        $rows      = session('points_import.rows', []);
+        $okCount   = (int) session('points_import.ok', 0);
+        $errCount  = (int) session('points_import.err', 0);
+
+        if (!$path || !$companyId || empty($rows)) {
+            return redirect()->route('points.import.create')->with('error', 'No hay preview cargado para confirmar.');
+        }
+
+        // Confirmación simple
+        $r->validate([
+            'confirm' => ['required','in:1'],
         ]);
 
-        $batchId = session('points_import_batch_id');
-        $path = session('points_import_path');
+        DB::transaction(function () use ($u, $companyId, $path, $rows, $okCount, $errCount) {
 
-        if (!$batchId || !$path || !Storage::disk('local')->exists($path)) {
-            return redirect()->route('points.import.create')
-                ->withErrors(['file' => 'No hay un lote en previsualización para confirmar.']);
-        }
+            $batch = PointImportBatch::create([
+                'company_id'  => $companyId,
+                'created_by'  => $u->id,
+                'filename'    => $path,
+                'status'      => 'committed',
+                'rows_total'  => count($rows),
+                'rows_ok'     => $okCount,
+                'rows_error'  => $errCount,
+            ]);
 
-        $batch = PointImportBatch::findOrFail($batchId);
-        $user  = $request->user();
+            foreach ($rows as $rrow) {
+                if (!$rrow['ok']) continue;
 
-        // Admin Empresa solo su empresa
-        if (!$user->hasRole('site_admin') && (int)$user->company_id !== (int)$batch->company_id) {
-            abort(403);
-        }
-
-        [$header, $rows] = $this->readCsv(Storage::disk('local')->path($path), 1000000);
-        $headerMap = array_flip($header);
-
-        foreach (['employee_cuil', 'points', 'occurred_at'] as $required) {
-            if (!isset($headerMap[$required])) {
-                return redirect()->route('points.import.create')
-                    ->withErrors(['file' => "El CSV no contiene {$required}."]);
-            }
-        }
-
-        DB::transaction(function () use ($rows, $headerMap, $batch, $user) {
-
-            $batch->status = 'imported';
-            $batch->save();
-
-            foreach ($rows as $row) {
-                $cuilRaw   = trim((string)($row[$headerMap['employee_cuil']] ?? ''));
-                $pointsRaw = trim((string)($row[$headerMap['points']] ?? ''));
-                $occRaw    = trim((string)($row[$headerMap['occurred_at']] ?? ''));
-
-                $reference = isset($headerMap['reference']) ? trim((string)($row[$headerMap['reference']] ?? '')) : null;
-                $note      = isset($headerMap['note']) ? trim((string)($row[$headerMap['note']] ?? '')) : null;
-
-                $cuil = $this->digitsOnly($cuilRaw);
-                if ($cuil === '') continue;
-
-                $pointsNormalized = str_replace(',', '.', $pointsRaw);
-                if (!is_numeric($pointsNormalized)) continue;
-
-                $points = (int) round((float)$pointsNormalized);
-
-                $occurredAt = $this->parseDateTime($occRaw);
-                if (!$occurredAt) continue;
-
-                $employee = User::query()
-                    ->where('company_id', $batch->company_id)
-                    ->where('cuil', $cuil)
-                    ->first();
-
-                if (!$employee) continue;
-                if (!$employee->hasRole('empleado')) continue;
-                if ($employee->activo === false) continue;
+                $m = $rrow['mapped'];
 
                 PointMovement::create([
-                    'company_id' => $batch->company_id,
-                    'employee_user_id' => $employee->id,
-                    'business_user_id' => null, // carga masiva
-                    'created_by' => $user->id,
-                    'batch_id' => $batch->id,
-
-                    'type' => 'earn',
-                    'points' => $points,
-                    'money_amount' => null,
-                    'reference' => $reference ?: null,
-                    'note' => $note ?: null,
-                    'occurred_at' => $occurredAt,
+                    'company_id'        => $companyId,
+                    'employee_user_id'  => $m['employee_user_id'],
+                    'business_user_id'  => null,
+                    'created_by'        => $u->id,
+                    'confirmed_by'      => null,
+                    'batch_id'          => $batch->id,
+                    'type'              => $m['type'],
+                    'points'            => $m['points'], // ya viene signed
+                    'money_amount'      => null,
+                    'reference'         => $m['reference'] ?? null,
+                    'note'              => $m['note'] ?? null,
+                    'occurred_at'       => $m['occurred_at'] ?? now(),
                 ]);
             }
         });
 
-        session()->forget(['points_import_batch_id', 'points_import_path']);
+        // limpiar sesión
+        session()->forget([
+            'points_import.path',
+            'points_import.companyId',
+            'points_import.rows',
+            'points_import.ok',
+            'points_import.err',
+        ]);
 
-        return redirect()->route('points.import.create')
-            ->with('success', "Importación confirmada. Lote #{$batch->id} guardado.");
+        return redirect()->route('points.index')->with('ok', 'Importación confirmada y aplicada.');
     }
 
-    // ---------------- Helpers ----------------
-
-    private function digitsOnly(string $value): string
+    /* =========================================================
+     * Helpers
+     * ========================================================= */
+    private function validateImportRow(array $row, int $companyId, bool $isSiteAdmin, $u): array
     {
-        $value = trim($value);
-        if ($value === '') return '';
-        return preg_replace('/\D+/', '', $value) ?? '';
-    }
+        // Campos posibles
+        $employeeId   = $row['employee_id'] ?? null;
+        $employeeCuil = $row['employee_cuil'] ?? ($row['employee_cuit'] ?? null);
+        $employeeMail = $row['employee_email'] ?? null;
 
-    private function readCsv(string $fullPath, int $limitRows = 5000): array
-    {
-        $handle = fopen($fullPath, 'r');
-        if (!$handle) return [[], []];
+        $type   = strtolower(trim((string)($row['type'] ?? '')));
+        $points = (int)($row['points'] ?? 0);
 
-        $firstLine = fgets($handle);
-        rewind($handle);
-
-        $delimiter = (substr_count((string)$firstLine, ';') > substr_count((string)$firstLine, ',')) ? ';' : ',';
-
-        $header = fgetcsv($handle, 0, $delimiter);
-        $header = array_map(fn($h) => trim((string)$h), $header ?: []);
-
-        $rows = [];
-        $count = 0;
-
-        while (($data = fgetcsv($handle, 0, $delimiter)) !== false) {
-            if (count($data) === 1 && trim((string)$data[0]) === '') continue;
-            $rows[] = $data;
-            $count++;
-            if ($count >= $limitRows) break;
+        if (!$employeeId && !$employeeCuil && !$employeeMail) {
+            return ['ok'=>false, 'error'=>'Falta employee_id / employee_cuil / employee_email', 'mapped'=>null];
         }
 
-        fclose($handle);
-
-        $header = array_map(function ($h) {
-            $h = mb_strtolower($h);
-            $h = str_replace([' ', '-'], '_', $h);
-            return trim($h);
-        }, $header);
-
-        return [$header, $rows];
-    }
-
-    private function parseDateTime(string $value): ?Carbon
-    {
-        $value = trim($value);
-        if ($value === '') return null;
-
-        try {
-            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
-                return Carbon::createFromFormat('Y-m-d', $value)->startOfDay();
-            }
-            if (preg_match('/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}$/', $value)) {
-                return Carbon::createFromFormat('Y-m-d H:i', $value);
-            }
-            return Carbon::parse($value);
-        } catch (\Throwable $e) {
-            return null;
+        if (!in_array($type, ['earn','redeem','adjust','expire'], true)) {
+            return ['ok'=>false, 'error'=>'Type inválido (earn/redeem/adjust/expire)', 'mapped'=>null];
         }
+
+        if ($points <= 0) {
+            return ['ok'=>false, 'error'=>'Points debe ser > 0', 'mapped'=>null];
+        }
+
+        // Resolver empleado
+        $empQ = User::query()->whereHas('roles', fn($q) => $q->where('name','empleado'));
+
+        if ($employeeId) {
+            $empQ->whereKey((int)$employeeId);
+        } elseif ($employeeMail) {
+            $empQ->where('email', trim((string)$employeeMail));
+        } else {
+            // cuil/cuit en tu app suele estar como "cuil"
+            $empQ->where('cuil', preg_replace('/\D+/', '', (string)$employeeCuil));
+        }
+
+        $emp = $empQ->first();
+
+        if (!$emp) {
+            return ['ok'=>false, 'error'=>'Empleado no encontrado', 'mapped'=>null];
+        }
+
+        // admin_empresa: solo su empresa
+        if (!$isSiteAdmin) {
+            if ((int)$emp->company_id !== (int)($u->company_id ?? 0)) {
+                return ['ok'=>false, 'error'=>'Empleado fuera de tu empresa', 'mapped'=>null];
+            }
+        } else {
+            // admin_sitio: si importás para una empresa, el empleado debe pertenecer a esa empresa
+            if ((int)$emp->company_id !== (int)$companyId) {
+                return ['ok'=>false, 'error'=>'Empleado no pertenece a la empresa seleccionada', 'mapped'=>null];
+            }
+        }
+
+        // puntos signed (redeem negativo)
+        $signedPoints = ($type === 'redeem') ? -abs($points) : abs($points);
+
+        // occurred_at opcional
+        $occurredAt = null;
+        if (!empty($row['occurred_at'])) {
+            try {
+                $occurredAt = \Illuminate\Support\Carbon::parse($row['occurred_at']);
+            } catch (\Throwable $e) {
+                return ['ok'=>false, 'error'=>'occurred_at inválida', 'mapped'=>null];
+            }
+        }
+
+        return [
+            'ok'    => true,
+            'error' => null,
+            'mapped'=> [
+                'employee_user_id' => $emp->id,
+                'type'             => $type,
+                'points'           => $signedPoints,
+                'reference'        => $row['reference'] ?? null,
+                'note'             => $row['note'] ?? null,
+                'occurred_at'      => $occurredAt,
+            ],
+        ];
     }
 }

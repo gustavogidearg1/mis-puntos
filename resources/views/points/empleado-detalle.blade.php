@@ -207,13 +207,16 @@
                 @endif
               </td>
 
-              <td>
-                @if($m->reference)
-                  <span class="badge bg-light text-dark">{{ $m->reference }}</span>
-                @else
-                  <span class="text-muted">—</span>
-                @endif
-              </td>
+<td>
+  @if($m->pointReference?->name)
+    <span class="badge bg-light text-dark">{{ $m->pointReference->name }}</span>
+  @elseif(!empty($m->reference))
+    <span class="badge bg-light text-dark">{{ $m->reference }}</span>
+  @else
+    <span class="text-muted">—</span>
+  @endif
+</td>
+
 
               <td>
                 @if($m->note)

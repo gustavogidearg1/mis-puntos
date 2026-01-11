@@ -70,6 +70,17 @@
         {{-- Estadísticas rápidas --}}
         @if(isset($stats) && ($isSiteAdmin || $isCompanyAdmin))
             <div class="row mb-4">
+
+                <div class="col-md-2 col-6 mb-3">
+                    <div class="card summary-card h-100">
+                        <div class="card-body text-center">
+                            <div class="text-success"><i class="bi bi-wallet2 summary-icon"></i></div>
+                            <div class="stats-number">{{ number_format($stats['total_points']) }}</div>
+                            <div class="stats-label">Puntos totales</div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="col-md-2 col-6 mb-3">
                     <div class="card summary-card h-100">
                         <div class="card-body text-center">
@@ -90,15 +101,7 @@
                     </div>
                 </div>
 
-                <div class="col-md-2 col-6 mb-3">
-                    <div class="card summary-card h-100">
-                        <div class="card-body text-center">
-                            <div class="text-success"><i class="bi bi-wallet2 summary-icon"></i></div>
-                            <div class="stats-number">{{ number_format($stats['total_points']) }}</div>
-                            <div class="stats-label">Puntos totales</div>
-                        </div>
-                    </div>
-                </div>
+
 
                 <div class="col-md-2 col-6 mb-3">
                     <div class="card summary-card h-100">
@@ -296,7 +299,7 @@
 
                             <td>
                                 @if($point->reference)
-                                    <span class="badge bg-light text-dark">{{ $point->reference }}</span>
+                                    <span class="badge bg-light text-dark">{{ $point->reference ?? '—' }}</span>
                                 @else
                                     <span class="text-muted">—</span>
                                 @endif

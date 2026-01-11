@@ -37,6 +37,19 @@
   <div class="card-body">
 
     {{-- Resumen --}}
+
+          <div class="col-12 col-md-4">
+        <div class="card summary-card h-100 border-primary">
+          <div class="card-body text-center">
+            <div class="text-primary">
+              <i class="bi bi-wallet2" style="font-size: 2rem;"></i>
+            </div>
+            <div class="stats-number">{{ number_format($totals['available'] ?? 0) }}</div>
+            <div class="stats-label">Puntos disponibles</div>
+          </div>
+        </div>
+      </div>
+
     <div class="row g-3 mb-4">
       <div class="col-12 col-md-4">
         <div class="card summary-card h-100 border-success">
@@ -62,17 +75,7 @@
         </div>
       </div>
 
-      <div class="col-12 col-md-4">
-        <div class="card summary-card h-100 border-primary">
-          <div class="card-body text-center">
-            <div class="text-primary">
-              <i class="bi bi-wallet2" style="font-size: 2rem;"></i>
-            </div>
-            <div class="stats-number">{{ number_format($totals['available'] ?? 0) }}</div>
-            <div class="stats-label">Puntos disponibles</div>
-          </div>
-        </div>
-      </div>
+
     </div>
 
     {{-- Historial --}}

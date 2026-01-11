@@ -22,31 +22,33 @@
   {{-- ===== Topbar ===== --}}
   <header class="topbar">
     <div class="topbar-left">
-      {{-- Logo de Company (si existe) --}}
-      @if($activeCompany && !empty($activeCompany->logo))
-        <img class="company-logo"
-             src="{{ asset('storage/'.$activeCompany->logo) }}"
-             alt="Company Logo">
-      @else
-        <div class="company-logo-fallback">
-            <img
-            src="{{ asset('logos/ImgLogoCircular-SF.png') }}"
-            alt="Logo {{ config('app.name') }}"
-            width="36"
-            height="36"
-            style="border-radius:12px; object-fit:cover; box-shadow: 0 6px 16px rgba(0,0,0,.12);"
+  <a href="{{ route('dashboard') }}" class="topbar-home">
+    {{-- Logo de Company (si existe) --}}
+    @if($activeCompany && !empty($activeCompany->logo))
+      <img class="company-logo"
+           src="{{ asset('storage/'.$activeCompany->logo) }}"
+           alt="Company Logo">
+    @else
+      <div class="company-logo-fallback">
+        <img
+          src="{{ asset('logos/ImgLogoCircular-SF.png') }}"
+          alt="Logo {{ config('app.name') }}"
+          width="36"
+          height="36"
+          style="border-radius:12px; object-fit:cover; box-shadow: 0 6px 16px rgba(0,0,0,.12);"
         />
-
-        </div>
-      @endif
-
-      <div class="topbar-title">
-        <div class="app-name">MisPuntos</div>
-        @if($activeCompany)
-          <div class="company-name">{{ $activeCompany->name ?? '' }}</div>
-        @endif
       </div>
+    @endif
+
+    <div class="topbar-title">
+      <div class="app-name">MisPuntos</div>
+      @if($activeCompany)
+        <div class="company-name">{{ $activeCompany->name ?? '' }}</div>
+      @endif
     </div>
+  </a>
+</div>
+
 
     <div class="topbar-actions">
       {{-- Hamburguesa (solo mobile/tablet) --}}

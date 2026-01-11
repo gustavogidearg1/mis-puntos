@@ -1,6 +1,31 @@
 @import "bootstrap/dist/css/bootstrap.min.css";
 @import "bootstrap-icons/font/bootstrap-icons.css";
 
+.tooltip .tooltip-inner{
+  border-radius: 10px;
+  padding: .45rem .6rem;
+  font-weight: 600;
+}
+
+.topbar-home{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  text-decoration:none;
+  color: inherit;
+}
+
+.topbar-home:hover{
+  color: inherit;
+  opacity: .95;
+}
+
+.topbar-home:active{
+  transform: translateY(1px);
+}
+
+
+
 /* ===== Material-ish cards ===== */
 .card.mat-card{
   border: 0;
@@ -237,22 +262,28 @@ h3.mat-title{
   grid-template-columns: 1fr var(--sidebar-w-collapsed);
 }
 
-.app-shell.sidebar-collapsed .sidebar-section-title,
-.app-shell.sidebar-collapsed .brand-text,
-.app-shell.sidebar-collapsed .link-text,
-.app-shell.sidebar-collapsed .user-info,
-.app-shell.sidebar-collapsed .sidebar-footer form button span{
+/* ===== Collapsed sidebar (desktop ONLY) ===== */
+.app-shell.sidebar-collapsed #rightSidebar .sidebar-section-title,
+.app-shell.sidebar-collapsed #rightSidebar .brand-text,
+.app-shell.sidebar-collapsed #rightSidebar .link-text,
+.app-shell.sidebar-collapsed #rightSidebar .user-info,
+.app-shell.sidebar-collapsed #rightSidebar .sidebar-footer form button span{
   display:none;
 }
 
-.app-shell.sidebar-collapsed .sidebar-link{
+.app-shell.sidebar-collapsed #rightSidebar .sidebar-link{
   justify-content:center;
   gap: 0;
   padding: 12px 8px;
 }
-.app-shell.sidebar-collapsed .sidebar-link i{
+.app-shell.sidebar-collapsed #rightSidebar .sidebar-link i{
   font-size: 1.2rem;
 }
+
+.app-shell.sidebar-collapsed #rightSidebar .sidebar-user{
+  justify-content:center;
+}
+
 
 .app-shell.sidebar-collapsed .sidebar-user{
   justify-content:center;
@@ -269,8 +300,3 @@ h3.mat-title{
   }
 }
 
-.tooltip .tooltip-inner{
-  border-radius: 10px;
-  padding: .45rem .6rem;
-  font-weight: 600;
-}

@@ -13,9 +13,15 @@
   $isBusiness     = $u?->hasRole('negocio');
   $isEmployee     = $u?->hasRole('empleado');
 
-  // Si tiene varios roles, priorizamos una “vista principal”
-  // (pero igual mostramos accesos útiles abajo).
+  // vista principal (prioridad)
   $primaryRole = $isAdmin ? 'admin' : ($isBusiness ? 'negocio' : ($isEmployee ? 'empleado' : 'user'));
+
+  // permisos para ver "Puntos"
+  $canSeePointsCard = $isEmployee || $isAdmin;
+
+  // QR fijo del negocio (empleado escanea y entra con negocio precargado)
+  $businessId = $isBusiness ? $u->id : null;
+  $businessManualUrl = $businessId ? url("/redeems/manual/{$businessId}") : null;
 @endphp
 
 <x-flash />
@@ -26,15 +32,19 @@
       <i class="bi bi-speedometer2 me-2"></i>
       Dashboard
     </h3>
-    <div class="ms-auto d-flex align-items-center gap-2">
+
+    {{-- Badges usuario/roles (responsive) --}}
+    <div class="ms-auto d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-2">
       <span class="badge bg-light text-dark">
         <i class="bi bi-person-circle me-1"></i>{{ $u->name }}
       </span>
 
-      @if($isSiteAdmin) <span class="badge bg-dark">Admin Sitio</span> @endif
-      @if($isCompanyAdmin) <span class="badge bg-primary">Admin Empresa</span> @endif
-      @if($isBusiness) <span class="badge bg-success">Negocio</span> @endif
-      @if($isEmployee) <span class="badge bg-warning text-dark">Empleado</span> @endif
+      <div class="d-flex flex-wrap gap-1">
+        @if($isSiteAdmin) <span class="badge bg-dark">Admin Sitio</span> @endif
+        @if($isCompanyAdmin) <span class="badge bg-primary">Admin Empresa</span> @endif
+        @if($isBusiness) <span class="badge bg-success">Negocio</span> @endif
+        @if($isEmployee) <span class="badge bg-warning text-dark">Empleado</span> @endif
+      </div>
     </div>
   </div>
 
@@ -46,80 +56,88 @@
 </div>
 
 {{-- =========================
-     ACCESOS RÁPIDOS (siempre)
+     ACCESOS RÁPIDOS
 ========================= --}}
 <div class="row g-3 mb-4">
-  <div class="col-12 col-md-6 col-lg-3">
-    <a href="{{ route('points.index') }}" class="text-decoration-none">
-      <div class="card mat-card h-100">
-        <div class="card-body">
-          <div class="d-flex align-items-center justify-content-between">
-            <div>
-              <div class="fw-bold">Puntos</div>
-              <div class="text-muted small">
-                {{ $isEmployee ? 'Ver mis puntos' : 'Ver movimientos' }}
+
+  {{-- PUNTOS: solo si Empleado o Admin --}}
+  @if($canSeePointsCard)
+    <div class="col-12 col-md-6 col-lg-3">
+      <a href="{{ route('points.index') }}" class="text-decoration-none">
+        <div class="card mat-card h-100">
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between">
+              <div>
+                <div class="fw-bold">Puntos</div>
+                <div class="text-muted small">
+                  {{ $isEmployee ? 'Ver mis puntos' : 'Ver movimientos' }}
+                </div>
               </div>
+              <i class="bi bi-stars" style="font-size:1.6rem;"></i>
             </div>
-            <i class="bi bi-stars" style="font-size:1.6rem;"></i>
           </div>
         </div>
-      </div>
-    </a>
-  </div>
+      </a>
+    </div>
+  @endif
 
+  {{-- Consumir (Negocio) --}}
   @if($isBusiness || $isSiteAdmin)
-  <div class="col-12 col-md-6 col-lg-3">
-    <a href="{{ route('redeems.create') }}" class="text-decoration-none">
-      <div class="card mat-card h-100">
-        <div class="card-body">
-          <div class="d-flex align-items-center justify-content-between">
-            <div>
-              <div class="fw-bold">Consumir (Negocio)</div>
-              <div class="text-muted small">Generar consumo y QR</div>
+    <div class="col-12 col-md-6 col-lg-3">
+      <a href="{{ route('redeems.create') }}" class="text-decoration-none">
+        <div class="card mat-card h-100">
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between">
+              <div>
+                <div class="fw-bold">Consumir (Negocio)</div>
+                <div class="text-muted small">Generar consumo y QR</div>
+              </div>
+              <i class="bi bi-qr-code-scan" style="font-size:1.6rem;"></i>
             </div>
-            <i class="bi bi-qr-code-scan" style="font-size:1.6rem;"></i>
           </div>
         </div>
-      </div>
-    </a>
-  </div>
+      </a>
+    </div>
   @endif
 
+  {{-- Consumo manual (Empleado) --}}
   @if($isEmployee || $isSiteAdmin)
-  <div class="col-12 col-md-6 col-lg-3">
-    <a href="{{ route('redeems.manual.index') }}" class="text-decoration-none">
-      <div class="card mat-card h-100">
-        <div class="card-body">
-          <div class="d-flex align-items-center justify-content-between">
-            <div>
-              <div class="fw-bold">Consumo manual</div>
-              <div class="text-muted small">Empleado → Negocio</div>
+    <div class="col-12 col-md-6 col-lg-3">
+      <a href="{{ route('redeems.manual.index') }}" class="text-decoration-none">
+        <div class="card mat-card h-100">
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between">
+              <div>
+                <div class="fw-bold">Consumo manual</div>
+                <div class="text-muted small">Empleado → Negocio</div>
+              </div>
+              <i class="bi bi-shop" style="font-size:1.6rem;"></i>
             </div>
-            <i class="bi bi-shop" style="font-size:1.6rem;"></i>
           </div>
         </div>
-      </div>
-    </a>
-  </div>
+      </a>
+    </div>
   @endif
 
+  {{-- Usuarios (Admin) --}}
   @if($isAdmin)
-  <div class="col-12 col-md-6 col-lg-3">
-    <a href="{{ route('abm.users.index') }}" class="text-decoration-none">
-      <div class="card mat-card h-100">
-        <div class="card-body">
-          <div class="d-flex align-items-center justify-content-between">
-            <div>
-              <div class="fw-bold">Usuarios</div>
-              <div class="text-muted small">ABM de usuarios</div>
+    <div class="col-12 col-md-6 col-lg-3">
+      <a href="{{ route('abm.users.index') }}" class="text-decoration-none">
+        <div class="card mat-card h-100">
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between">
+              <div>
+                <div class="fw-bold">Usuarios</div>
+                <div class="text-muted small">ABM de usuarios</div>
+              </div>
+              <i class="bi bi-people" style="font-size:1.6rem;"></i>
             </div>
-            <i class="bi bi-people" style="font-size:1.6rem;"></i>
           </div>
         </div>
-      </div>
-    </a>
-  </div>
+      </a>
+    </div>
   @endif
+
 </div>
 
 {{-- =========================
@@ -179,9 +197,7 @@
           <h3 class="mat-title mb-0"><i class="bi bi-shop me-2"></i>Panel de negocio</h3>
         </div>
         <div class="card-body">
-          <div class="mb-2">
-            Acciones típicas:
-          </div>
+          <div class="mb-2">Acciones típicas:</div>
           <ul class="mb-3">
             <li>Generar consumo por QR (cuando el empleado está presente).</li>
             <li>Si el empleado escanea un QR preimpreso, igual queda trazabilidad en movimientos.</li>
@@ -194,18 +210,41 @@
       </div>
     </div>
 
-    <div class="col-12 col-lg-4">
-      <div class="card mat-card h-100">
-        <div class="mat-header">
-          <h3 class="mat-title mb-0"><i class="bi bi-info-circle me-2"></i>Tip rápido</h3>
-        </div>
-        <div class="card-body">
-          <div class="text-muted">
-            Si vas a usar el QR preimpreso del negocio, después podemos agregar en tu ABM de usuario un QR fijo para imprimir.
+    {{-- TIP + QR FIJO solo si es Negocio --}}    @if($isBusiness && $businessManualUrl)
+      <div class="col-12 col-lg-4">
+        <div class="card mat-card h-100">
+          <div class="mat-header">
+            <h3 class="mat-title mb-0"><i class="bi bi-info-circle me-2"></i>QR del negocio</h3>
+          </div>
+          <div class="card-body">
+            <div class="text-muted mb-2">
+              Imprimí este QR y dejalo en caja: el empleado lo escanea y entra directo al consumo manual con tu negocio precargado.
+            </div>
+
+            <div class="d-flex justify-content-center p-2 bg-white rounded-4 border">
+              {!! \SimpleSoftwareIO\QrCode\Facades\QrCode::size(180)->margin(1)->generate($businessManualUrl) !!}
+            </div>
+
+            <div class="mt-2">
+              <div class="small text-muted">Link:</div>
+              <div class="input-group">
+                <input id="bizQrUrl" class="form-control form-control-sm" value="{{ $businessManualUrl }}" readonly>
+                <button class="btn btn-outline-secondary btn-sm" type="button"
+                        onclick="navigator.clipboard?.writeText(document.getElementById('bizQrUrl').value)">
+                  <i class="bi bi-clipboard"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="d-grid mt-2">
+              <button type="button" class="btn btn-outline-primary btn-mat" onclick="window.print()">
+                <i class="bi bi-printer"></i> Imprimir
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    @endif
   </div>
 
 @elseif($primaryRole === 'empleado')

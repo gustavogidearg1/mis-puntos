@@ -41,27 +41,25 @@
   {{-- ===========================
        EMPLEADO (si NO es admin)
        =========================== --}}
-  @if($showEmployee)
-    <div class="sidebar-section px-3 pt-3">
-      <div class="sidebar-section-title">Empleado</div>
+@if($showEmployee)
+  <div class="sidebar-section px-3 pt-3">
+    <div class="sidebar-section-title">Empleado</div>
 
-      <a class="sidebar-link {{ str_starts_with($r, 'points.') ? 'active' : '' }}"
-         href="{{ route('points.index') }}"
-         data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Mis puntos">
-        <i class="bi bi-star"></i>
-        <span class="link-text">Mis puntos</span>
-      </a>
+    <a class="sidebar-link {{ str_starts_with($r, 'points.') ? 'active' : '' }}"
+       href="{{ route('points.index') }}"
+       data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Mis puntos">
+      <i class="bi bi-star"></i>
+      <span class="link-text">Mis puntos</span>
+    </a>
 
-      {{-- opcional: consumo manual empleado -> negocio
-      <a class="sidebar-link {{ str_starts_with($r, 'redeems.manual.') ? 'active' : '' }}"
-         href="{{ route('redeems.manual.create') }}">
-        <i class="bi bi-shop"></i>
-        <span class="link-text">Consumo manual</span>
-      </a>
-      --}}
-    </div>
-  @endif
-
+    <a class="sidebar-link {{ str_starts_with($r, 'redeems.manual.') ? 'active' : '' }}"
+       href="{{ route('redeems.manual.index') }}"
+       data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Consumo manual">
+      <i class="bi bi-shop"></i>
+      <span class="link-text">Consumo manual</span>
+    </a>
+  </div>
+@endif
   {{-- ===========================
        NEGOCIO (si NO es admin)
        =========================== --}}
