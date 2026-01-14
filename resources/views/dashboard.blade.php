@@ -39,12 +39,7 @@
         <i class="bi bi-person-circle me-1"></i>{{ $u->name }}
       </span>
 
-      <div class="d-flex flex-wrap gap-1">
-        @if($isSiteAdmin) <span class="badge bg-dark">Admin Sitio</span> @endif
-        @if($isCompanyAdmin) <span class="badge bg-primary">Admin Empresa</span> @endif
-        @if($isBusiness) <span class="badge bg-success">Negocio</span> @endif
-        @if($isEmployee) <span class="badge bg-warning text-dark">Empleado</span> @endif
-      </div>
+
     </div>
   </div>
 
@@ -295,5 +290,13 @@
     </div>
   </div>
 @endif
+    <div class="ms-auto d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-2">
 
+      <div class="d-flex flex-wrap gap-1">
+        @if($isSiteAdmin) <span class="badge bg-dark">Admin Sitio</span> @endif
+        @if($isCompanyAdmin) <span class="badge bg-primary">Admin Empresa</span> @endif
+        @if($isBusiness) <span class="badge bg-success">Negocio</span> @endif
+        @if($isEmployee) <span class="badge bg-warning text-dark">Empleado</span> @endif
+      </div>
+    </div>
 @endsection

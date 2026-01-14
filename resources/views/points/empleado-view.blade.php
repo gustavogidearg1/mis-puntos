@@ -1,3 +1,4 @@
+{{-- resources/views/points/empleado-view.blade.php --}}
 @extends('layouts.app')
 
 @section('title', 'Mis Puntos')
@@ -37,8 +38,9 @@
   <div class="card-body">
 
     {{-- Resumen --}}
+    <div class="row g-3 mb-4">
 
-          <div class="col-12 col-md-4">
+      <div class="col-12 col-md-4">
         <div class="card summary-card h-100 border-primary">
           <div class="card-body text-center">
             <div class="text-primary">
@@ -50,7 +52,6 @@
         </div>
       </div>
 
-    <div class="row g-3 mb-4">
       <div class="col-12 col-md-4">
         <div class="card summary-card h-100 border-success">
           <div class="card-body text-center">
@@ -74,7 +75,6 @@
           </div>
         </div>
       </div>
-
 
     </div>
 
@@ -111,12 +111,8 @@
                 'expire' => 'badge-expire',
               ][$p->type] ?? 'badge-expire';
 
-              $typeText = [
-                'earn'   => 'Carga',
-                'redeem' => 'Canje',
-                'adjust' => 'Ajuste',
-                'expire' => 'Vencimiento',
-              ][$p->type] ?? ucfirst($p->type);
+              // ✅ Traducción desde config/points.php
+              $typeText = config("points.types.{$p->type}") ?? ucfirst($p->type);
 
               $pts = (int)($p->points ?? 0);
 

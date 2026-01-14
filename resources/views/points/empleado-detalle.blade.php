@@ -84,6 +84,21 @@
 
     {{-- Totales --}}
     <div class="row g-3 mb-4">
+
+              <div class="col-12 col-md-4">
+        <div class="card summary-card h-100">
+          <div class="card-body text-center">
+            <div class="text-info"><i class="bi bi-wallet2 summary-icon"></i></div>
+            <div class="stats-number">
+              <span class="{{ $available > 0 ? 'points-positive' : ($available < 0 ? 'points-negative' : 'points-neutral') }}">
+                {{ number_format($available) }}
+              </span>
+            </div>
+            <div class="stats-label">Disponible</div>
+          </div>
+        </div>
+      </div>
+
       <div class="col-12 col-md-4">
         <div class="card summary-card h-100">
           <div class="card-body text-center">
@@ -104,19 +119,9 @@
         </div>
       </div>
 
-      <div class="col-12 col-md-4">
-        <div class="card summary-card h-100">
-          <div class="card-body text-center">
-            <div class="text-info"><i class="bi bi-wallet2 summary-icon"></i></div>
-            <div class="stats-number">
-              <span class="{{ $available > 0 ? 'points-positive' : ($available < 0 ? 'points-negative' : 'points-neutral') }}">
-                {{ number_format($available) }}
-              </span>
-            </div>
-            <div class="stats-label">Disponible</div>
-          </div>
-        </div>
-      </div>
+
+
+
     </div>
 
     {{-- Filtros --}}
@@ -185,7 +190,10 @@
               </td>
 
               <td>
-                <span class="type-badge {{ $typeClass }}">{{ ucfirst($m->type) }}</span>
+                <span class="type-badge {{ $typeClass }}">
+  {{ config("points.types.{$m->type}") ?? ucfirst($m->type) }}
+</span>
+
               </td>
 
               <td class="text-end">

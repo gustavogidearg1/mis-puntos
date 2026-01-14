@@ -1,5 +1,10 @@
 <?php
 
 return [
-    'email_on_import' => env('POINTS_EMAIL_ON_IMPORT', false),
+  'types' => [
+    'earn'   => 'Carga',
+    'redeem' => 'Canje',
+    'adjust' => 'Ajuste',
+    'expire' => 'Vencimiento',
+  ],
 ];

@@ -81,6 +81,16 @@
         </div>
       </div>
 
+            <div class="col-12 col-md-3">
+        <div class="card summary-card h-100">
+          <div class="card-body text-center">
+            <div class="text-info"><i class="bi bi-wallet2 summary-icon"></i></div>
+            <div class="stats-number">{{ number_format($overallTotals['total_points_available'] ?? 0) }}</div>
+            <div class="stats-label">Disponible</div>
+          </div>
+        </div>
+      </div>
+
       <div class="col-12 col-md-3">
         <div class="card summary-card h-100">
           <div class="card-body text-center">
@@ -101,15 +111,7 @@
         </div>
       </div>
 
-      <div class="col-12 col-md-3">
-        <div class="card summary-card h-100">
-          <div class="card-body text-center">
-            <div class="text-info"><i class="bi bi-wallet2 summary-icon"></i></div>
-            <div class="stats-number">{{ number_format($overallTotals['total_points_available'] ?? 0) }}</div>
-            <div class="stats-label">Disponible</div>
-          </div>
-        </div>
-      </div>
+
     </div>
 
     {{-- Tabla --}}

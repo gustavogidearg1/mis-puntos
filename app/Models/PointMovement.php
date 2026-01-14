@@ -6,14 +6,29 @@ use Illuminate\Database\Eloquent\Model;
 
 class PointMovement extends Model
 {
-protected $fillable = [
-  'company_id','employee_user_id','business_user_id','created_by','confirmed_by','batch_id',
-  'type','points','money_amount','reference_id','reference','note','occurred_at',
-];
+    protected $fillable = [
+        'company_id',
+        'employee_user_id',
+        'business_user_id',
+        'created_by',
+        'confirmed_by',
+        'batch_id',
+        'type',
+        'subtype',
+        'points',
+        'money_amount',
+        'reference',   // ✅ texto
+        'note',
+        'occurred_at',
+        'voided_at',
+        'voided_by',
+        'void_note',
+    ];
 
     protected $casts = [
-        'occurred_at' => 'datetime',
-        'money_amount' => 'decimal:2',
+        'occurred_at'   => 'datetime',
+        'money_amount'  => 'decimal:2',
+        'voided_at'     => 'datetime',
     ];
 
     public function employee()
@@ -31,6 +46,11 @@ protected $fillable = [
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function confirmedBy()
+    {
+        return $this->belongsTo(User::class, 'confirmed_by');
+    }
+
     public function company()
     {
         return $this->belongsTo(Company::class, 'company_id');
@@ -40,14 +60,4 @@ protected $fillable = [
     {
         return $this->belongsTo(PointImportBatch::class, 'batch_id');
     }
-
-    public function confirmedBy()
-{
-    return $this->belongsTo(User::class, 'confirmed_by');
-}
-
-public function pointReference()
-{
-    return $this->belongsTo(PointReference::class, 'reference_id');
-}
 }
