@@ -164,24 +164,7 @@
       </div>
     </div>
 
-    <div class="col-12 col-lg-4">
-      <div class="card mat-card h-100">
-        <div class="mat-header">
-          <h3 class="mat-title mb-0"><i class="bi bi-lightning-charge me-2"></i>Siguientes pasos</h3>
-        </div>
-        <div class="card-body">
-          <div class="text-muted small">
-            Ideas para que el dashboard quede “vivo”:
-          </div>
-          <ul class="mt-2 mb-0">
-            <li>Movimientos últimos 7 días</li>
-            <li>Top 5 empleados con más puntos</li>
-            <li>Top 5 negocios con más consumos</li>
-            <li>Alertas (consumos anulados, etc.)</li>
-          </ul>
-        </div>
-      </div>
-    </div>
+
   </div>
 
 @elseif($primaryRole === 'negocio')
