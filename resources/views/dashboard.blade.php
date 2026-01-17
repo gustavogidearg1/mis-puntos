@@ -26,12 +26,15 @@
 
 <x-flash />
 
+
 <div class="card mat-card mb-3">
   <div class="mat-header">
     <h3 class="mat-title mb-0">
       <i class="bi bi-speedometer2 me-2"></i>
       Dashboard
     </h3>
+
+
 
     {{-- Badges usuario/roles (responsive) --}}
     <div class="ms-auto d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-2">

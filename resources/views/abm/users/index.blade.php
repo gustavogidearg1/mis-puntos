@@ -30,15 +30,6 @@
         <input type="text" name="q" class="form-control" value="{{ request('q') }}" placeholder="name, email, cuil...">
       </div>
 
-      <div class="col-12 col-md-3">
-        <label class="form-label">Company</label>
-        <select name="company_id" class="form-select">
-          <option value="">—</option>
-          @foreach($companies as $c)
-            <option value="{{ $c->id }}" @selected((string)request('company_id')===(string)$c->id)>{{ $c->name }}</option>
-          @endforeach
-        </select>
-      </div>
 
       <div class="col-6 col-md-2">
         <label class="form-label">Role</label>
@@ -117,7 +108,7 @@
                 Email {!! sort_icon_users('email') !!}
               </a>
             </th>
-            <th>Company</th>
+            <th>DNI</th>
             <th>Roles</th>
             <th>
               <a class="{{ sort_class_users('activo') }}" href="{{ sort_url_users('activo') }}">
@@ -133,7 +124,7 @@
             <tr>
               <td class="fw-semibold">{{ $user->name }}</td>
               <td>{{ $user->email }}</td>
-              <td>{{ $user->company?->name ?? '—' }}</td>
+              <td>{{ $user->cuil ?? '—' }}</td>
               <td>
                 @forelse($user->roles as $role)
                   <span class="badge text-bg-secondary me-1">{{ $role->name }}</span>

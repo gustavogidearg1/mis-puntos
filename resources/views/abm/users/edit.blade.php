@@ -18,7 +18,7 @@
     <form method="POST"
           action="{{ route('abm.users.update', $user) }}"
           class="row g-3"
-          enctype="multipart/form-data">
+          enctype="multipart/form-data" autocomplete="off">
       @csrf
       @method('PUT')
 
@@ -156,7 +156,7 @@
           @error('company_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
         </div>
       @else
-        <input type="hidden" name="company_id" value="{{ old('company_id', $user->company_id) }}">
+        <input type="hidden" name="company_id" value="{{ auth()->user()->company_id }}">
       @endif
 
       <div class="col-md-3">
@@ -209,7 +209,7 @@
 
       <div class="col-md-6">
         <label class="form-label">Confirmar nueva contraseña</label>
-        <input name="password_confirmation" type="password" class="form-control">
+        <input name="password_confirmation" type="password" class="form-control" autocomplete="new-password">
       </div>
 
       {{-- =========================

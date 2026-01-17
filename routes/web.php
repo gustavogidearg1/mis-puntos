@@ -35,6 +35,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+
 });
 
 /**
@@ -43,6 +45,28 @@ Route::middleware('auth')->group(function () {
  * ============================
  */
 Route::middleware(['auth'])->group(function () {
+
+Route::get('/debug/route/{any}', function ($any) {
+
+    // Importante: simulamos el path real
+    $path = ltrim($any, '/');
+
+    // Buscamos la ruta que matchea ese path
+    $request = request()->create('/' . $path, 'GET');
+    $route = app('router')->getRoutes()->match($request);
+
+    dd([
+        'target' => '/' . $path,
+        'uri' => $route->uri(),
+        'name' => $route->getName(),
+        'action' => $route->getActionName(),
+        'middleware' => $route->gatherMiddleware(),
+        'roles' => auth()->user()->getRoleNames(),
+        'has_admin_empresa' => auth()->user()->hasRole('admin_empresa'),
+        'has_admin_sitio' => auth()->user()->hasRole('admin_sitio'),
+    ]);
+
+})->where('any', '.*')->middleware('auth');
 
     /**
      * ============================
@@ -142,6 +166,7 @@ Route::middleware(['auth'])->group(function () {
             ->name('export');
     });
 
+
     /**
      * ============================
      * IMPORTACIÓN MASIVA (admins)
@@ -193,6 +218,10 @@ Route::middleware(['auth'])->group(function () {
 });
 
 
+
 });
 
+
 require __DIR__ . '/auth.php';
+
+

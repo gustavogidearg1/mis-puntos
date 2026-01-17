@@ -4,193 +4,236 @@ namespace App\Http\Controllers\Abm;
 
 use App\Http\Controllers\Controller;
 use App\Models\Company;
-use Illuminate\Support\Facades\Storage;
-use App\Models\Pais;
-use App\Models\Provincia;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\UserRegisteredMail;
 
 class UserController extends Controller
 {
     public function __construct()
     {
-    $this->middleware(['auth']);
-    $this->middleware(['role:admin_sitio|admin_empresa']);
+        $this->middleware(['auth']);
+        $this->middleware(['role:admin_sitio|admin_empresa']);
     }
 
     public function index(Request $request)
-{
-    $q         = $request->string('q')->toString();
-    $companyId = $request->input('company_id');
-    $roleName  = $request->input('role');
+    {
+        $q         = $request->string('q')->toString();
+        $companyId = $request->input('company_id');
+        $roleName  = $request->input('role');
 
-    // Para los filtros del select
-    $companies = Company::query()->orderBy('name')->get();
-    $roles     = Role::query()->orderBy('name')->get();
+        $companies = Company::query()->orderBy('name')->get();
+        $roles     = Role::query()->orderBy('name')->get();
 
-    $users = User::query()
-        ->with(['roles', 'company'])
-        ->when($q, function ($qq) use ($q) {
-            $qq->where(function ($w) use ($q) {
-                $w->where('name', 'like', "%{$q}%")
-                  ->orWhere('email', 'like', "%{$q}%");
-            });
-        })
-        ->when($companyId, fn ($qq) => $qq->where('company_id', $companyId))
-        ->when($roleName, function ($qq) use ($roleName) {
-            $qq->whereHas('roles', fn ($r) => $r->where('name', $roleName));
-        })
-        ->orderBy('name')
-        ->paginate(15)
-        ->withQueryString();
+        $users = User::query()
+            ->with(['roles', 'company'])
+            ->when($q, function ($qq) use ($q) {
+                $qq->where(function ($w) use ($q) {
+                    $w->where('name', 'like', "%{$q}%")
+                        ->orWhere('email', 'like', "%{$q}%");
+                });
+            })
+            ->when($companyId, fn($qq) => $qq->where('company_id', $companyId))
+            ->when($roleName, function ($qq) use ($roleName) {
+                $qq->whereHas('roles', fn($r) => $r->where('name', $roleName));
+            })
+            ->orderBy('name')
+            ->paginate(15)
+            ->withQueryString();
 
-    return view('abm.users.index', compact('users', 'q', 'companies', 'roles', 'companyId', 'roleName'));
-}
-
-
-public function create()
-{
-    $roles = Role::query()->orderBy('name')->pluck('name'); // <- nombres (strings)
-    $companies = Company::query()->orderBy('name')->get();
-
-    $paises = \App\Models\Pais::query()->orderBy('nombre')->get();
-    $provincias = \App\Models\Provincia::query()->orderBy('nombre')->get();
-    $localidades = \App\Models\Localidad::query()->orderBy('nombre')->get();
-
-    return view('abm.users.create', compact('roles','companies','paises','provincias','localidades'));
-}
-
-
-    public function store(Request $request)
-{
-    $data = $request->validate([
-        'name'       => ['required','string','max:120'],
-        'email'      => ['required','email','max:180','unique:users,email'],
-        'password'   => ['required','string','min:6','max:255','confirmed'],
-
-        'cuil'       => ['nullable','string','max:13'],
-        'direccion'  => ['nullable','string','max:255'],
-
-        'company_id'    => ['nullable','integer','exists:companies,id'],
-        'pais_id'       => ['nullable','integer','exists:paises,id'],
-        'provincia_id'  => ['nullable','integer','exists:provincias,id'],
-        'localidad_id'  => ['nullable','integer','exists:localidades,id'],
-
-        'fecha_nacimiento' => ['nullable','date'],
-        'activo'           => ['nullable','boolean'],
-
-        'imagen' => ['nullable','image','max:2048'],
-
-        'roles'   => ['nullable','array'],
-        'roles.*' => ['string','exists:roles,name'],
-    ]);
-
-    if ($request->hasFile('imagen')) {
-        $data['imagen'] = $request->file('imagen')->store('users', 'public');
+        return view('abm.users.index', compact('users', 'q', 'companies', 'roles', 'companyId', 'roleName'));
     }
 
-    $user = User::create([
-        'name'            => $data['name'],
-        'email'           => $data['email'],
-        'password'        => Hash::make($data['password']),
-        'cuil'            => $data['cuil'] ?? null,
-        'direccion'       => $data['direccion'] ?? null,
-        'company_id'      => $data['company_id'] ?? null,
-        'pais_id'         => $data['pais_id'] ?? null,
-        'provincia_id'    => $data['provincia_id'] ?? null,
-        'localidad_id'    => $data['localidad_id'] ?? null,
-        'fecha_nacimiento'=> $data['fecha_nacimiento'] ?? null,
-        'activo'          => isset($data['activo']) ? (bool)$data['activo'] : true,
-        'imagen'          => $data['imagen'] ?? null,
-    ]);
+    public function create()
+    {
+        $roles      = Role::query()->orderBy('name')->pluck('name'); // strings
+        $companies  = Company::query()->orderBy('name')->get();
 
-    $user->syncRoles($data['roles'] ?? []);
+        $paises     = \App\Models\Pais::query()->orderBy('nombre')->get();
+        $provincias = \App\Models\Provincia::query()->orderBy('nombre')->get();
+        $localidades = \App\Models\Localidad::query()->orderBy('nombre')->get();
 
-    return redirect()->route('abm.users.index')->with('success', 'User created successfully.');
-}
+        return view('abm.users.create', compact('roles', 'companies', 'paises', 'provincias', 'localidades'));
+    }
 
+    /**
+     * Normaliza inputs sensibles y refuerza reglas de seguridad:
+     * - company_id: si es admin_empresa (y no admin_sitio), se fuerza al company del usuario logueado.
+     * - cuil: se guarda/valida solo con números (sin guiones/espacios)
+     */
+    private function normalizeAndSecureRequest(Request $request): void
+    {
+        // Blindaje: admin_empresa NO elige company_id desde el front
+        if (auth()->user()?->hasRole('admin_empresa') && !auth()->user()?->hasRole('admin_sitio')) {
+            $request->merge(['company_id' => auth()->user()->company_id]);
+        }
+
+        // Normalizar CUIL (solo números)
+        $request->merge([
+            'cuil' => preg_replace('/\D+/', '', (string) $request->input('cuil')),
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        $this->normalizeAndSecureRequest($request);
+
+        $data = $request->validate([
+            'name'     => ['required', 'string', 'max:120'],
+            'email'    => ['required', 'email', 'max:180', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:6', 'max:255', 'confirmed'],
+
+            // Si vas a guardar solo números: size:11 es ideal para CUIL/CUIT
+            'cuil' => [
+                'required',
+                'string',
+                Rule::unique('users', 'cuil')->where(
+                    fn($q) =>
+                    $q->where('company_id', $request->input('company_id'))
+                ),
+            ],
+
+            'direccion' => ['nullable', 'string', 'max:255'],
+
+            'company_id'   => ['required', 'integer', 'exists:companies,id'],
+            'pais_id'      => ['nullable', 'integer', 'exists:paises,id'],
+            'provincia_id' => ['nullable', 'integer', 'exists:provincias,id'],
+            'localidad_id' => ['nullable', 'integer', 'exists:localidades,id'],
+
+            'fecha_nacimiento' => ['nullable', 'date'],
+            'activo'           => ['nullable', 'boolean'],
+
+            'imagen' => ['nullable', 'image', 'max:2048'],
+
+            'roles'   => ['nullable', 'array'],
+            'roles.*' => ['string', 'exists:roles,name'],
+        ]);
+
+        if ($request->hasFile('imagen')) {
+            $data['imagen'] = $request->file('imagen')->store('users', 'public');
+        }
+
+        $user = User::create([
+            'name'             => $data['name'],
+            'email'            => $data['email'],
+            'password'         => Hash::make($data['password']),
+            'cuil'             => $data['cuil'],
+            'direccion'        => $data['direccion'] ?? null,
+            'company_id'       => $data['company_id'],
+            'pais_id'          => $data['pais_id'] ?? null,
+            'provincia_id'     => $data['provincia_id'] ?? null,
+            'localidad_id'     => $data['localidad_id'] ?? null,
+            'fecha_nacimiento' => $data['fecha_nacimiento'] ?? null,
+            'activo'           => array_key_exists('activo', $data) ? (bool)$data['activo'] : true,
+            'imagen'           => $data['imagen'] ?? null,
+        ]);
+
+        $user->syncRoles($data['roles'] ?? []);
+
+        // Cargar relación para mostrar empresa en el email
+        $user->load('company');
+
+        // Enviar email de confirmación
+        Mail::to($user->email)->send(new UserRegisteredMail($user));
+
+        // Si acá disparás email de verificación/confirmación, el overlay en la vista va perfecto.
+        return redirect()->route('abm.users.index')->with('success', 'User created successfully.');
+    }
 
     public function show(User $user)
     {
         $user->load(['roles', 'company', 'pais', 'provincia', 'localidad']);
-
         return view('abm.users.show', compact('user'));
     }
 
-public function edit(User $user)
-{
-    $companies = Company::query()->orderBy('name')->get();
-    $paises = \App\Models\Pais::query()->orderBy('nombre')->get();
-    $provincias = \App\Models\Provincia::query()->orderBy('nombre')->get();
-    $localidades = \App\Models\Localidad::query()->orderBy('nombre')->get();
+    public function edit(User $user)
+    {
+        $companies   = Company::query()->orderBy('name')->get();
+        $paises      = \App\Models\Pais::query()->orderBy('nombre')->get();
+        $provincias  = \App\Models\Provincia::query()->orderBy('nombre')->get();
+        $localidades = \App\Models\Localidad::query()->orderBy('nombre')->get();
 
-    $roles = Role::query()->orderBy('name')->pluck('name'); // strings
-    $currentRoleNames = $user->roles->pluck('name')->all();
+        $roles            = Role::query()->orderBy('name')->pluck('name'); // strings
+        $currentRoleNames = $user->roles->pluck('name')->all();
 
-    return view('abm.users.edit', compact(
-        'user','companies','paises','provincias','localidades','roles','currentRoleNames'
-    ));
-}
-
+        return view('abm.users.edit', compact(
+            'user',
+            'companies',
+            'paises',
+            'provincias',
+            'localidades',
+            'roles',
+            'currentRoleNames'
+        ));
+    }
 
     public function update(Request $request, User $user)
-{
-    $data = $request->validate([
-        'name' => ['required', 'string', 'max:120'],
-        'email' => ['required', 'email', 'max:180', Rule::unique('users', 'email')->ignore($user->id)],
-        'password' => ['nullable', 'string', 'min:6', 'max:255'],
+    {
+        $this->normalizeAndSecureRequest($request);
 
-        'cuil' => ['nullable', 'string', 'max:13'],
-        'direccion' => ['nullable', 'string', 'max:255'],
+        $data = $request->validate([
+            'name'  => ['required', 'string', 'max:120'],
+            'email' => ['required', 'email', 'max:180', Rule::unique('users', 'email')->ignore($user->id)],
+            'password' => ['nullable', 'string', 'min:6', 'max:255', 'confirmed'],
 
-        'company_id' => ['nullable', 'integer', 'exists:companies,id'],
-        'pais_id' => ['nullable', 'integer', 'exists:paises,id'],
-        'provincia_id' => ['nullable', 'integer', 'exists:provincias,id'],
-        'localidad_id' => ['nullable', 'integer', 'exists:localidades,id'],
+            'cuil' => [
+                'required',
+                'string',
+                'size:11',
+                Rule::unique('users', 'cuil')
+                    ->where(fn($q) => $q->where('company_id', $request->input('company_id')))
+                    ->ignore($user->id),
+            ],
 
-        'fecha_nacimiento' => ['nullable', 'date'],
-        'activo' => ['nullable', 'boolean'],
+            'direccion' => ['nullable', 'string', 'max:255'],
 
-        'imagen' => ['nullable', 'image', 'max:2048'],
+            'company_id'   => ['required', 'integer', 'exists:companies,id'],
+            'pais_id'      => ['nullable', 'integer', 'exists:paises,id'],
+            'provincia_id' => ['nullable', 'integer', 'exists:provincias,id'],
+            'localidad_id' => ['nullable', 'integer', 'exists:localidades,id'],
 
-        'roles' => ['nullable', 'array'],
-        'roles.*' => ['string', 'exists:roles,name'],
-    ]);
+            'fecha_nacimiento' => ['nullable', 'date'],
+            'activo'           => ['nullable', 'boolean'],
 
-    $updateData = [
-        'name' => $data['name'],
-        'email' => $data['email'],
-        'cuil' => $data['cuil'] ?? null,
-        'direccion' => $data['direccion'] ?? null,
-        'company_id' => $data['company_id'] ?? null,
-        'pais_id' => $data['pais_id'] ?? null,
-        'provincia_id' => $data['provincia_id'] ?? null,
-        'localidad_id' => $data['localidad_id'] ?? null,
-        'fecha_nacimiento' => $data['fecha_nacimiento'] ?? null,
-        // OJO: si no mandás el checkbox, viene null. Si querés que “no enviado” no cambie, avisame.
-        'activo' => (bool)($data['activo'] ?? false),
-    ];
+            'imagen' => ['nullable', 'image', 'max:2048'],
 
-    if ($request->hasFile('imagen')) {
-        if ($user->imagen) {
-            Storage::disk('public')->delete($user->imagen);
+            'roles'   => ['nullable', 'array'],
+            'roles.*' => ['string', 'exists:roles,name'],
+        ]);
+
+        $updateData = [
+            'name'             => $data['name'],
+            'email'            => $data['email'],
+            'cuil'             => $data['cuil'],
+            'direccion'        => $data['direccion'] ?? null,
+            'company_id'       => $data['company_id'],
+            'pais_id'          => $data['pais_id'] ?? null,
+            'provincia_id'     => $data['provincia_id'] ?? null,
+            'localidad_id'     => $data['localidad_id'] ?? null,
+            'fecha_nacimiento' => $data['fecha_nacimiento'] ?? null,
+            // Como usás select, siempre viene. Si quisieras "no enviado no cambia", lo ajustamos.
+            'activo'           => array_key_exists('activo', $data) ? (bool)$data['activo'] : (bool)$user->activo,
+        ];
+
+        if ($request->hasFile('imagen')) {
+            if ($user->imagen) {
+                Storage::disk('public')->delete($user->imagen);
+            }
+            $updateData['imagen'] = $request->file('imagen')->store('users', 'public');
         }
-        $updateData['imagen'] = $request->file('imagen')->store('users', 'public');
+
+        if (!empty($data['password'])) {
+            $updateData['password'] = Hash::make($data['password']);
+        }
+
+        $user->update($updateData);
+        $user->syncRoles($data['roles'] ?? []);
+
+        return redirect()->route('abm.users.show', $user)->with('success', 'User updated successfully.');
     }
-
-    if (!empty($data['password'])) {
-        $updateData['password'] = Hash::make($data['password']);
-    }
-
-    $user->update($updateData);
-    $user->syncRoles($data['roles'] ?? []);
-
-    return redirect()->route('abm.users.show', $user)->with('success', 'User updated successfully.');
-}
-
-
-
 }

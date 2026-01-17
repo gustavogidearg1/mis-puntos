@@ -22,6 +22,8 @@ class PointsController extends Controller
 
     public function index(Request $r)
     {
+
+
         $u = $r->user();
 
         $isSiteAdmin    = $u->hasRole('admin_sitio');

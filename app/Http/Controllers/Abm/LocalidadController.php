@@ -12,7 +12,7 @@ class LocalidadController extends Controller
 {
     public function __construct()
     {
-        $this->middleware(['auth', 'role:admin_sitio']);
+         $this->middleware('role:admin_sitio|admin_empresa');
     }
 
     public function index(Request $request)
