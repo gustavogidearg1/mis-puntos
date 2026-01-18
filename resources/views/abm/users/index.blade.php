@@ -12,11 +12,11 @@
 
 <div class="card mat-card">
   <div class="mat-header">
-    <h3 class="mat-title mb-0"><i class="bi bi-people"></i> Users</h3>
+    <h3 class="mat-title mb-0"><i class="bi bi-people"></i> Usuarios</h3>
 
     <div class="ms-auto d-flex gap-2">
       <a href="{{ route('abm.users.create') }}" class="btn btn-primary btn-mat btn-sm">
-        <i class="bi bi-plus-circle"></i> New
+        <i class="bi bi-plus-circle"></i> Nuevo
       </a>
     </div>
   </div>
@@ -61,7 +61,7 @@
 
       <div class="col-12 col-md d-flex gap-2">
         <button class="btn btn-outline-secondary btn-mat" type="submit">
-          <i class="bi bi-funnel"></i> Apply
+          <i class="bi bi-funnel"></i> FIltrar
         </button>
 
         @if(request()->filled('q') || request()->filled('company_id') || request()->filled('role') || request()->filled('activo') || request()->filled('per'))
@@ -100,7 +100,7 @@
           <tr>
             <th>
               <a class="{{ sort_class_users('name') }}" href="{{ sort_url_users('name') }}">
-                Name {!! sort_icon_users('name') !!}
+                Nombre {!! sort_icon_users('name') !!}
               </a>
             </th>
             <th>
@@ -112,10 +112,10 @@
             <th>Roles</th>
             <th>
               <a class="{{ sort_class_users('activo') }}" href="{{ sort_url_users('activo') }}">
-                Active {!! sort_icon_users('activo') !!}
+                Activo {!! sort_icon_users('activo') !!}
               </a>
             </th>
-            <th class="text-end" style="width:220px;">Actions</th>
+            <th class="text-end" style="width:220px;">Acciones</th>
           </tr>
         </thead>
 
@@ -134,20 +134,20 @@
               </td>
               <td>
                 @if($user->activo)
-                  <span class="badge text-bg-success">Yes</span>
+                  <span class="badge text-bg-success">Si</span>
                 @else
                   <span class="badge text-bg-secondary">No</span>
                 @endif
               </td>
               <td class="text-end">
                 <div class="btn-group" role="group">
-                  <a href="{{ route('abm.users.show', $user) }}" class="btn btn-outline-secondary btn-sm btn-mat">View</a>
+                  <a href="{{ route('abm.users.show', $user) }}" class="btn btn-outline-secondary btn-sm btn-mat">Ver</a>
                   <a href="{{ route('abm.users.edit', $user) }}" class="btn btn-outline-primary btn-sm btn-mat">Edit</a>
                 </div>
               </td>
             </tr>
           @empty
-            <tr><td colspan="6" class="text-center text-muted py-4">No users</td></tr>
+            <tr><td colspan="6" class="text-center text-muted py-4">No usuarios</td></tr>
           @endforelse
         </tbody>
       </table>

@@ -46,11 +46,7 @@
     </div>
   </div>
 
-  <div class="card-body">
-    <div class="text-muted">
-      Elegí una acción rápida para empezar. (Este panel lo vamos a ir enriqueciendo con métricas reales.)
-    </div>
-  </div>
+
 </div>
 
 {{-- =========================
@@ -155,14 +151,22 @@
             <li>En <strong>Usuarios</strong> gestionás roles, alta/baja y datos.</li>
           </ul>
 
-          <div class="d-flex flex-wrap gap-2 mt-3">
-            <a class="btn btn-primary btn-mat" href="{{ route('points.resumen') }}">
-              <i class="bi bi-bar-chart"></i> Resumen
-            </a>
-            <a class="btn btn-outline-primary btn-mat" href="{{ route('points.import.create') }}">
-              <i class="bi bi-upload"></i> Importación
-            </a>
-          </div>
+<div class="d-flex flex-wrap gap-2 mt-3">
+  <a class="btn btn-primary btn-mat" href="{{ route('points.resumen') }}">
+    <i class="bi bi-bar-chart"></i> Resumen
+  </a>
+
+  <a class="btn btn-outline-primary btn-mat" href="{{ route('points.import.create') }}">
+    <i class="bi bi-upload"></i> Importación
+  </a>
+
+  <a class="btn btn-outline-primary btn-mat" href="{{ route('points.create') }}">
+    <i class="bi bi-plus-lg"></i> Crear movimiento
+  </a>
+
+
+</div>
+
         </div>
       </div>
     </div>

@@ -38,84 +38,101 @@
 </style>
 
 <div class="card mat-card">
-  <div class="mat-header">
-    <h3 class="mat-title mb-0"><i class="bi bi-trophy"></i> Gestión de puntos</h3>
+<div class="mat-header d-flex flex-column flex-md-row align-items-start align-items-md-center gap-2">
+  <h3 class="mat-title mb-0">
+    <i class="bi bi-trophy"></i> Gestión de puntos
+  </h3>
 
-    <div class="ms-auto d-flex gap-2">
-      @if($isSiteAdmin || $isCompanyAdmin)
-        <a href="{{ route('points.create') }}" class="btn btn-primary btn-mat">
-          <i class="bi bi-plus-lg"></i> Crear movimiento
-        </a>
+  @if($isSiteAdmin || $isCompanyAdmin)
+    <div class="ms-md-auto d-grid gap-2 d-md-flex">
+      <a href="{{ route('points.create') }}" class="btn btn-primary btn-mat">
+        <i class="bi bi-plus-lg"></i> Crear mov
+      </a>
 
-        <a href="{{ route('points.resumen') }}" class="btn btn-outline-secondary btn-mat">
-          <i class="bi bi-bar-chart"></i> Resumen
-        </a>
+      <a href="{{ route('points.resumen') }}" class="btn btn-outline-secondary btn-mat">
+        <i class="bi bi-bar-chart"></i> Resumen
+      </a>
 
-        <a href="{{ route('points.export', request()->all()) }}" class="btn btn-outline-success btn-mat">
-          <i class="bi bi-download"></i> Exportar CSV
-        </a>
-      @endif
+<a href="{{ route('points.export', request()->query()) }}" class="btn btn-outline-success btn-mat">
+  <i class="bi bi-download"></i> Exportar
+</a>
     </div>
-  </div>
+  @endif
+</div>
 
   <div class="card-body">
 
     {{-- Estadísticas rápidas --}}
-    @if(isset($stats) && ($isSiteAdmin || $isCompanyAdmin))
-      <div class="row mb-4">
+@if(isset($stats) && ($isSiteAdmin || $isCompanyAdmin))
 
-        <div class="col-md-2 col-6 mb-3">
-          <div class="card summary-card h-100">
-            <div class="card-body text-center">
-              <div class="text-success"><i class="bi bi-wallet2 summary-icon"></i></div>
-              <div class="stats-number">{{ number_format($stats['total_points']) }}</div>
-              <div class="stats-label">Puntos totales</div>
-            </div>
+  <div class="d-flex align-items-center mb-2">
+    <button class="btn btn-outline-secondary btn-mat btn-sm"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#quickStats"
+            aria-expanded="false"
+            aria-controls="quickStats">
+      <i class="bi bi-chevron-down me-1"></i> Ver estadísticas rápidas
+    </button>
+  </div>
+
+  <div class="collapse" id="quickStats">
+    <div class="row mb-4">
+
+      <div class="col-md-2 col-6 mb-3">
+        <div class="card summary-card h-100">
+          <div class="card-body text-center">
+            <div class="text-success"><i class="bi bi-wallet2 summary-icon"></i></div>
+            <div class="stats-number">{{ number_format($stats['total_points']) }}</div>
+            <div class="stats-label">Puntos totales</div>
           </div>
         </div>
-
-        <div class="col-md-2 col-6 mb-3">
-          <div class="card summary-card h-100">
-            <div class="card-body text-center">
-              <div class="text-primary"><i class="bi bi-arrow-up-circle summary-icon"></i></div>
-              <div class="stats-number">{{ number_format($stats['total_earned']) }}</div>
-              <div class="stats-label">Puntos ganados</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-md-2 col-6 mb-3">
-          <div class="card summary-card h-100">
-            <div class="card-body text-center">
-              <div class="text-danger"><i class="bi bi-arrow-down-circle summary-icon"></i></div>
-              <div class="stats-number">{{ number_format($stats['total_redeemed']) }}</div>
-              <div class="stats-label">Puntos canjeados</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-md-2 col-6 mb-3">
-          <div class="card summary-card h-100">
-            <div class="card-body text-center">
-              <div class="text-info"><i class="bi bi-list-ul summary-icon"></i></div>
-              <div class="stats-number">{{ number_format($stats['total_movements']) }}</div>
-              <div class="stats-label">Movimientos totales</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-md-2 col-6 mb-3">
-          <div class="card summary-card h-100">
-            <div class="card-body text-center">
-              <div class="text-warning"><i class="bi bi-graph-up summary-icon"></i></div>
-              <div class="stats-number">{{ number_format($stats['avg_points'] ?? 0, 1) }}</div>
-              <div class="stats-label">Promedio por movimiento</div>
-            </div>
-          </div>
-        </div>
-
       </div>
-    @endif
+
+      <div class="col-md-2 col-6 mb-3">
+        <div class="card summary-card h-100">
+          <div class="card-body text-center">
+            <div class="text-primary"><i class="bi bi-arrow-up-circle summary-icon"></i></div>
+            <div class="stats-number">{{ number_format($stats['total_earned']) }}</div>
+            <div class="stats-label">Puntos ganados</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-2 col-6 mb-3">
+        <div class="card summary-card h-100">
+          <div class="card-body text-center">
+            <div class="text-danger"><i class="bi bi-arrow-down-circle summary-icon"></i></div>
+            <div class="stats-number">{{ number_format($stats['total_redeemed']) }}</div>
+            <div class="stats-label">Puntos canjeados</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-2 col-6 mb-3">
+        <div class="card summary-card h-100">
+          <div class="card-body text-center">
+            <div class="text-info"><i class="bi bi-list-ul summary-icon"></i></div>
+            <div class="stats-number">{{ number_format($stats['total_movements']) }}</div>
+            <div class="stats-label">Movimientos totales</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-2 col-6 mb-3">
+        <div class="card summary-card h-100">
+          <div class="card-body text-center">
+            <div class="text-warning"><i class="bi bi-graph-up summary-icon"></i></div>
+            <div class="stats-number">{{ number_format($stats['avg_points'] ?? 0, 1) }}</div>
+            <div class="stats-label">Promedio por movimiento</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+@endif
+
 
     {{-- Filtros --}}
     @if($isSiteAdmin || $isCompanyAdmin)
@@ -161,18 +178,6 @@
               @php $lbl = config("points.types.$typeName") ?? ucfirst($typeName); @endphp
               <option value="{{ $typeName }}" @selected(request('type') == $typeName)>
                 {{ $lbl }}
-              </option>
-            @endforeach
-          </select>
-        </div>
-
-        <div class="col-12 col-md-2">
-          <label class="form-label">Lote</label>
-          <select name="batch_id" class="form-select">
-            <option value="">Todos los lotes</option>
-            @foreach($batches as $batch)
-              <option value="{{ $batch->id }}" @selected((string)request('batch_id') === (string)$batch->id)>
-                {{ $batch->filename }} ({{ $batch->rows_total }})
               </option>
             @endforeach
           </select>
@@ -230,10 +235,9 @@
             <th>Referencia</th>
             <th>Notas</th>
 
-            @if($isSiteAdmin || $isCompanyAdmin)
+
               <th>Creado por</th>
-              <th>Lote</th>
-            @endif
+
 
             <th class="text-end">Acción</th>
           </tr>
@@ -314,15 +318,7 @@
                   <small>{{ $point->createdBy->name ?? '—' }}</small>
                 </td>
 
-                <td>
-                  @if($point->batch)
-                    <small class="text-muted" title="{{ $point->batch->filename }}">
-                      {{ \Illuminate\Support\Str::limit(basename($point->batch->filename), 20) }}
-                    </small>
-                  @else
-                    <span class="text-muted">—</span>
-                  @endif
-                </td>
+
               @endif
 
               <td class="text-end">
@@ -355,7 +351,7 @@
         Mostrando {{ $points->firstItem() ?? 0 }}–{{ $points->lastItem() ?? 0 }}
         de {{ $points->total() }} movimientos
       </small>
-      {{ $points->withQueryString()->links() }}
+      {{ $points->withQueryString()->links('pagination::bootstrap-5') }}
     </div>
 
   </div>
@@ -372,6 +368,18 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!endDate.value || endDate.value < this.value) endDate.value = this.value;
     });
   }
+
+    const el = document.getElementById('quickStats');
+  if (!el) return;
+
+  const key = 'mp_points_quickStats_open';
+  const saved = localStorage.getItem(key);
+
+  if (saved === '1') el.classList.add('show');
+
+  el.addEventListener('shown.bs.collapse', () => localStorage.setItem(key, '1'));
+  el.addEventListener('hidden.bs.collapse', () => localStorage.setItem(key, '0'));
+
 });
 </script>
 @endif

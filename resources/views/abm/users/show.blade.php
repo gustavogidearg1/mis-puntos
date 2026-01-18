@@ -68,9 +68,9 @@
   <div class="mat-header">
 
     <div class="ms-auto d-flex gap-2">
-      <a href="{{ route('abm.users.index') }}" class="btn btn-outline-secondary btn-sm">Back</a>
+      <a href="{{ route('abm.users.index') }}" class="btn btn-outline-secondary btn-sm">Atrás</a>
       <a href="{{ route('abm.users.edit', $user) }}" class="btn btn-primary btn-mat btn-sm">
-        <i class="bi bi-pencil"></i> Edit
+        <i class="bi bi-pencil"></i> Editar
       </a>
     </div>
   </div>
@@ -83,7 +83,7 @@
         @else
           <div class="border rounded-3 p-4 text-center text-muted">
             <i class="bi bi-image" style="font-size:2rem;"></i>
-            <div class="small mt-2">No image</div>
+            <div class="small mt-2">No imagen</div>
           </div>
         @endif
       </div>
@@ -96,7 +96,7 @@
           </div>
 
           <div class="col-md-6">
-            <div class="text-muted small">Company</div>
+            <div class="text-muted small">Empresa</div>
             <div class="fw-semibold">{{ $user->company?->name ?? '—' }}</div>
           </div>
 
@@ -106,27 +106,27 @@
           </div>
 
           <div class="col-md-8">
-            <div class="text-muted small">Address</div>
+            <div class="text-muted small">Direccion</div>
             <div class="fw-semibold">{{ $user->direccion ?? '—' }}</div>
           </div>
 
           <div class="col-md-4">
-            <div class="text-muted small">Birth date</div>
+            <div class="text-muted small">Fecha de nacimiento</div>
             <div class="fw-semibold">{{ $user->fecha_nacimiento?->format('d/m/Y') ?? '—' }}</div>
           </div>
 
           <div class="col-md-4">
-            <div class="text-muted small">Country</div>
+            <div class="text-muted small">Pais</div>
             <div class="fw-semibold">{{ $user->pais?->nombre ?? '—' }}</div>
           </div>
 
           <div class="col-md-4">
-            <div class="text-muted small">Province</div>
+            <div class="text-muted small">Provincia</div>
             <div class="fw-semibold">{{ $user->provincia?->nombre ?? '—' }}</div>
           </div>
 
           <div class="col-md-4">
-            <div class="text-muted small">Locality</div>
+            <div class="text-muted small">Localidad</div>
             <div class="fw-semibold">
               {{ $user->localidad?->nombre ?? '—' }}
               @if($user->localidad?->cp)
@@ -136,9 +136,9 @@
           </div>
 
           <div class="col-md-4">
-            <div class="text-muted small">Active</div>
+            <div class="text-muted small">Activo</div>
             @if($user->activo)
-              <span class="badge text-bg-success">Yes</span>
+              <span class="badge text-bg-success">Si</span>
             @else
               <span class="badge text-bg-secondary">No</span>
             @endif

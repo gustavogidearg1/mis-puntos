@@ -88,7 +88,7 @@ class UserController extends Controller
             'email'    => ['required', 'email', 'max:180', 'unique:users,email'],
             'password' => ['required', 'string', 'min:6', 'max:255', 'confirmed'],
 
-            // Si vas a guardar solo números: size:11 es ideal para CUIL/CUIT
+
             'cuil' => [
                 'required',
                 'string',
@@ -184,7 +184,6 @@ class UserController extends Controller
             'cuil' => [
                 'required',
                 'string',
-                'size:11',
                 Rule::unique('users', 'cuil')
                     ->where(fn($q) => $q->where('company_id', $request->input('company_id')))
                     ->ignore($user->id),
