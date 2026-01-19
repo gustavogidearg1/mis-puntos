@@ -82,47 +82,59 @@
 
   <div class="card-body">
 
-    {{-- Totales --}}
-    <div class="row g-3 mb-4">
+    {{-- Totales (colapsable) --}}
+<div class="d-flex align-items-center mb-2 no-print">
+  <button class="btn btn-outline-secondary btn-mat btn-sm"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#employeeTotals"
+          aria-expanded="false"
+          aria-controls="employeeTotals">
+    <i class="bi bi-chevron-down me-1"></i> Ver totales
+  </button>
+</div>
 
-              <div class="col-12 col-md-4">
-        <div class="card summary-card h-100">
-          <div class="card-body text-center">
-            <div class="text-info"><i class="bi bi-wallet2 summary-icon"></i></div>
-            <div class="stats-number">
-              <span class="{{ $available > 0 ? 'points-positive' : ($available < 0 ? 'points-negative' : 'points-neutral') }}">
-                {{ number_format($available) }}
-              </span>
-            </div>
-            <div class="stats-label">Disponible</div>
+<div class="collapse" id="employeeTotals">
+  <div class="row g-3 mb-4">
+
+    <div class="col-12 col-md-4">
+      <div class="card summary-card h-100">
+        <div class="card-body text-center">
+          <div class="text-info"><i class="bi bi-wallet2 summary-icon"></i></div>
+          <div class="stats-number">
+            <span class="{{ $available > 0 ? 'points-positive' : ($available < 0 ? 'points-negative' : 'points-neutral') }}">
+              {{ number_format($available) }}
+            </span>
           </div>
+          <div class="stats-label">Disponible</div>
         </div>
       </div>
-
-      <div class="col-12 col-md-4">
-        <div class="card summary-card h-100">
-          <div class="card-body text-center">
-            <div class="text-success"><i class="bi bi-arrow-up-circle summary-icon"></i></div>
-            <div class="stats-number">{{ number_format($totals['total_earned'] ?? 0) }}</div>
-            <div class="stats-label">Ganado</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-12 col-md-4">
-        <div class="card summary-card h-100">
-          <div class="card-body text-center">
-            <div class="text-danger"><i class="bi bi-arrow-down-circle summary-icon"></i></div>
-            <div class="stats-number">{{ number_format($totals['total_redeemed'] ?? 0) }}</div>
-            <div class="stats-label">Canjeado</div>
-          </div>
-        </div>
-      </div>
-
-
-
-
     </div>
+
+    <div class="col-12 col-md-4">
+      <div class="card summary-card h-100">
+        <div class="card-body text-center">
+          <div class="text-success"><i class="bi bi-arrow-up-circle summary-icon"></i></div>
+          <div class="stats-number">{{ number_format($totals['total_earned'] ?? 0) }}</div>
+          <div class="stats-label">Ganado</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-4">
+      <div class="card summary-card h-100">
+        <div class="card-body text-center">
+          <div class="text-danger"><i class="bi bi-arrow-down-circle summary-icon"></i></div>
+          <div class="stats-number">{{ number_format($totals['total_redeemed'] ?? 0) }}</div>
+          <div class="stats-label">Canjeado</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
 
     {{-- Filtros --}}
     <form method="GET" class="row g-3 mb-3" action="{{ route('points.employee.detail', $employee->id) }}">
@@ -130,9 +142,10 @@
         <label class="form-label">Tipo</label>
         <select name="type" class="form-select">
           <option value="">Todos</option>
-          @foreach(['earn','redeem','adjust','expire'] as $t)
-            <option value="{{ $t }}" @selected(request('type') === $t)>{{ ucfirst($t) }}</option>
-          @endforeach
+@foreach(['earn','redeem','adjust','expire'] as $t)
+  @php $label = config("points.types.$t") ?? ucfirst($t); @endphp
+  <option value="{{ $t }}" @selected(request('type') === $t)>{{ $label }}</option>
+@endforeach
         </select>
       </div>
 
@@ -262,5 +275,23 @@
 
   </div>
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const el = document.getElementById('employeeTotals');
+  if (!el) return;
+
+  const key = 'mp_points_employeeTotals_open';
+  const saved = localStorage.getItem(key);
+
+  if (saved === '1') el.classList.add('show');
+
+  el.addEventListener('shown.bs.collapse', () => localStorage.setItem(key, '1'));
+  el.addEventListener('hidden.bs.collapse', () => localStorage.setItem(key, '0'));
+});
+</script>
+@endpush
+
 
 @endsection

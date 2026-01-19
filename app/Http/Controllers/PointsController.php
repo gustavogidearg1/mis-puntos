@@ -147,6 +147,22 @@ class PointsController extends Controller
         if (!$isSiteAdmin) $employeesQ->where('company_id', $companyId);
         elseif (!empty($companyId)) $employeesQ->where('company_id', $companyId);
 
+                $employeeQ = trim((string)$r->get('employee_q'));
+        if ($employeeQ !== '') {
+            $employeesQ->where(function ($qq) use ($employeeQ) {
+                $qq->where('users.name', 'like', "%{$employeeQ}%")
+                   ->orWhere('users.email', 'like', "%{$employeeQ}%");
+            });
+        }
+
+        $cuil = preg_replace('/\D+/', '', (string)$r->get('cuil')); // solo números
+        if (!empty($cuil)) {
+            // permite buscar tanto con guiones como sin guiones
+            $employeesQ->where(function ($qq) use ($cuil) {
+                $qq->whereRaw("REPLACE(REPLACE(users.cuil,'-',''),' ','') LIKE ?", ["%{$cuil}%"]);
+            });
+        }
+
         // redeem en tu BD es NEGATIVO, entonces total_redeemed = ABS(sum(redeem))
 $movQ = PointMovement::query()
     ->selectRaw('employee_user_id,
