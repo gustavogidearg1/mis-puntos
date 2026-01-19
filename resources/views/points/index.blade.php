@@ -158,17 +158,7 @@
           </div>
         @endif
 
-        <div class="col-12 col-md-2">
-          <label class="form-label">Empleado</label>
-          <select name="employee_id" class="form-select">
-            <option value="">Todos los empleados</option>
-            @foreach($employees as $emp)
-              <option value="{{ $emp->id }}" @selected((string)request('employee_id') === (string)$emp->id)>
-                {{ $emp->name }}
-              </option>
-            @endforeach
-          </select>
-        </div>
+
 
         <div class="col-12 col-md-2">
           <label class="form-label">Tipo</label>

@@ -7,6 +7,7 @@ use App\Models\Company;
 use App\Models\PointMovement;
 use App\Models\PointReference;
 use App\Models\PointImportBatch;
+use App\Notifications\MovimientoPuntosCreado;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -22,8 +23,6 @@ class PointsController extends Controller
 
     public function index(Request $r)
     {
-
-
         $u = $r->user();
 
         $isSiteAdmin    = $u->hasRole('admin_sitio');
@@ -147,7 +146,7 @@ class PointsController extends Controller
         if (!$isSiteAdmin) $employeesQ->where('company_id', $companyId);
         elseif (!empty($companyId)) $employeesQ->where('company_id', $companyId);
 
-                $employeeQ = trim((string)$r->get('employee_q'));
+        $employeeQ = trim((string)$r->get('employee_q'));
         if ($employeeQ !== '') {
             $employeesQ->where(function ($qq) use ($employeeQ) {
                 $qq->where('users.name', 'like', "%{$employeeQ}%")
@@ -155,23 +154,21 @@ class PointsController extends Controller
             });
         }
 
-        $cuil = preg_replace('/\D+/', '', (string)$r->get('cuil')); // solo números
+        $cuil = preg_replace('/\D+/', '', (string)$r->get('cuil'));
         if (!empty($cuil)) {
-            // permite buscar tanto con guiones como sin guiones
             $employeesQ->where(function ($qq) use ($cuil) {
                 $qq->whereRaw("REPLACE(REPLACE(users.cuil,'-',''),' ','') LIKE ?", ["%{$cuil}%"]);
             });
         }
 
-        // redeem en tu BD es NEGATIVO, entonces total_redeemed = ABS(sum(redeem))
-$movQ = PointMovement::query()
-    ->selectRaw('employee_user_id,
-        SUM(CASE WHEN points > 0 THEN points ELSE 0 END) as total_earned,
-        ABS(SUM(CASE WHEN points < 0 THEN points ELSE 0 END)) as total_redeemed,
-        SUM(points) as total_available,
-        COUNT(*) as movement_count
-    ')
-    ->groupBy('employee_user_id');
+        $movQ = PointMovement::query()
+            ->selectRaw('employee_user_id,
+                SUM(CASE WHEN points > 0 THEN points ELSE 0 END) as total_earned,
+                ABS(SUM(CASE WHEN points < 0 THEN points ELSE 0 END)) as total_redeemed,
+                SUM(points) as total_available,
+                COUNT(*) as movement_count
+            ')
+            ->groupBy('employee_user_id');
 
         if ($hasVoided) $movQ->whereNull('voided_at');
         if (!empty($companyId)) $movQ->where('company_id', $companyId);
@@ -179,11 +176,11 @@ $movQ = PointMovement::query()
         $summaryQ = $employeesQ
             ->leftJoinSub($movQ, 'm', fn($join) => $join->on('users.id','=','m.employee_user_id'))
             ->addSelect([
-    'users.id','users.name','users.email','users.cuil','users.company_id',
-    DB::raw('COALESCE(m.total_earned,0) as total_earned'),
-    DB::raw('COALESCE(m.total_redeemed,0) as total_redeemed'),
-    DB::raw('COALESCE(m.total_available,0) as total_available'),
-    DB::raw('COALESCE(m.movement_count,0) as movement_count'),
+                'users.id','users.name','users.email','users.cuil','users.company_id',
+                DB::raw('COALESCE(m.total_earned,0) as total_earned'),
+                DB::raw('COALESCE(m.total_redeemed,0) as total_redeemed'),
+                DB::raw('COALESCE(m.total_available,0) as total_available'),
+                DB::raw('COALESCE(m.movement_count,0) as movement_count'),
             ])
             ->orderByDesc('total_available')
             ->orderBy('users.name');
@@ -215,7 +212,12 @@ $movQ = PointMovement::query()
         abort_unless($u->hasRole('admin_sitio') || $u->hasRole('admin_empresa'), 403);
 
         $isSiteAdmin = $u->hasRole('admin_sitio');
-        $companyId   = $isSiteAdmin ? null : ($u->company_id ?? null);
+
+        // ✅ admin_sitio puede filtrar referencias por GET ref_company_id
+        // ✅ admin_empresa siempre queda fijo a su company_id
+        $companyId = $isSiteAdmin
+            ? ($r->filled('ref_company_id') ? (int)$r->ref_company_id : null)
+            : (int)($u->company_id ?? 0);
 
         $employeesQ = User::query()
             ->whereHas('roles', fn($q) => $q->where('name','empleado'))
@@ -227,10 +229,9 @@ $movQ = PointMovement::query()
 
         $companies = $isSiteAdmin ? Company::orderBy('name')->get() : collect();
 
-        // ✅ referencias reales
         $references = PointReference::query()
             ->active()
-            ->forCompany($companyId)   // globales + empresa
+            ->forCompany($companyId)   // globales + empresa (si $companyId null => todas globales + todas empresas según tu scope)
             ->orderByRaw('COALESCE(sort_order, 9999) ASC')
             ->orderBy('name')
             ->get(['id','name','company_id']);
@@ -242,7 +243,9 @@ $movQ = PointMovement::query()
             'expire' => 'Vencimiento',
         ];
 
-        return view('points.crear', compact('employees','companies','companyId','isSiteAdmin','types','references'));
+        return view('points.crear', compact(
+            'employees','companies','companyId','isSiteAdmin','types','references'
+        ));
     }
 
     public function store(Request $r)
@@ -259,10 +262,7 @@ $movQ = PointMovement::query()
             'type'              => ['required','in:earn,redeem,adjust,expire'],
             'points'            => ['required','integer','min:1','max:1000000'],
             'occurred_at'       => ['nullable','date'],
-
-            // ✅ Obligatoria por ID del catálogo
             'reference_id'      => ['required','integer','exists:point_references,id'],
-
             'note'              => ['nullable','string','max:500'],
         ]);
 
@@ -283,7 +283,6 @@ $movQ = PointMovement::query()
             ? Carbon::parse($data['occurred_at'])
             : now();
 
-        // ✅ traducción id -> texto (lo que guarda point_movements)
         $refText = PointReference::query()
             ->whereKey((int)$data['reference_id'])
             ->value('name');
@@ -292,14 +291,14 @@ $movQ = PointMovement::query()
             return back()->withErrors(['reference_id' => 'Referencia inválida.'])->withInput();
         }
 
-        // puntos con signo
         $pts = (int)$data['points'];
         if (in_array($data['type'], ['redeem','expire'], true)) $pts = -abs($pts);
         else $pts = abs($pts);
 
-        DB::transaction(function () use ($u, $employee, $finalCompanyId, $occurredAt, $data, $refText, $pts) {
+        $movement = null;
 
-            PointMovement::create([
+        DB::transaction(function () use ($u, $employee, $finalCompanyId, $occurredAt, $data, $refText, $pts, &$movement) {
+            $movement = PointMovement::create([
                 'company_id'       => $finalCompanyId,
                 'employee_user_id' => $employee->id,
                 'business_user_id' => null,
@@ -317,6 +316,12 @@ $movQ = PointMovement::query()
                 'occurred_at'      => $occurredAt,
             ]);
         });
+
+        // ✅ Mail al empleado (Carga manual + Creado por)
+        if ($movement && !empty($employee->email)) {
+            $movement->load('createdBy:id,name');
+            $employee->notify(new MovimientoPuntosCreado($movement));
+        }
 
         return redirect()->route('points.index')->with('ok', 'Movimiento guardado.');
     }
@@ -358,87 +363,83 @@ $movQ = PointMovement::query()
     }
 
     public function export(Request $r): StreamedResponse
-{
-    $u = $r->user();
-    abort_unless($u->hasRole('admin_sitio') || $u->hasRole('admin_empresa'), 403);
+    {
+        $u = $r->user();
+        abort_unless($u->hasRole('admin_sitio') || $u->hasRole('admin_empresa'), 403);
 
-    $isSiteAdmin = $u->hasRole('admin_sitio');
-    $hasVoided   = Schema::hasColumn('point_movements', 'voided_at');
+        $isSiteAdmin = $u->hasRole('admin_sitio');
+        $hasVoided   = Schema::hasColumn('point_movements', 'voided_at');
 
-    $q = PointMovement::query()
-        ->with([
-            'employee:id,name,email,company_id,cuil',
-            'business:id,name',
-            'company:id,name',
-            'createdBy:id,name',
-            'confirmedBy:id,name',
-            'batch:id,filename,rows_total',
-        ]);
+        $q = PointMovement::query()
+            ->with([
+                'employee:id,name,email,company_id,cuil',
+                'business:id,name',
+                'company:id,name',
+                'createdBy:id,name',
+                'confirmedBy:id,name',
+                'batch:id,filename,rows_total',
+            ]);
 
-    // Restricción por empresa (igual que index)
-    if (!$isSiteAdmin) {
-        $q->where('company_id', $u->company_id);
+        if (!$isSiteAdmin) {
+            $q->where('company_id', $u->company_id);
+        }
+
+        $term = trim((string)$r->get('q'));
+        if ($term !== '') {
+            $q->where(function ($qq) use ($term) {
+                $qq->whereHas('employee', fn($q2) => $q2->where('name', 'like', "%{$term}%"))
+                   ->orWhereHas('business', fn($q2) => $q2->where('name', 'like', "%{$term}%"))
+                   ->orWhere('note', 'like', "%{$term}%")
+                   ->orWhere('reference', 'like', "%{$term}%");
+            });
+        }
+
+        if ($r->filled('company_id'))  $q->where('company_id', (int)$r->company_id);
+        if ($r->filled('employee_id')) $q->where('employee_user_id', (int)$r->employee_id);
+        if ($r->filled('type') && $r->type !== 'all') $q->where('type', $r->type);
+        if ($r->filled('batch_id')) $q->where('batch_id', (int)$r->batch_id);
+
+        if ($r->filled('start_date')) $q->whereDate('occurred_at', '>=', $r->start_date);
+        if ($r->filled('end_date'))   $q->whereDate('occurred_at', '<=', $r->end_date);
+
+        if ($hasVoided && !$r->boolean('show_voided')) {
+            $q->whereNull('voided_at');
+        }
+
+        $q->orderByDesc('occurred_at')->orderByDesc('id');
+
+        $filename = 'points_export_' . now()->format('Ymd_His') . '.csv';
+
+        return response()->streamDownload(function () use ($q) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
+
+            fputcsv($out, [
+                'ID','Fecha','Empresa','Empleado','CUIL','Negocio','Tipo','Puntos','Referencia','Nota','Creado por','Lote'
+            ]);
+
+            $q->chunk(500, function ($rows) use ($out) {
+                foreach ($rows as $m) {
+                    fputcsv($out, [
+                        $m->id,
+                        optional($m->occurred_at)->format('Y-m-d H:i:s'),
+                        $m->company?->name,
+                        $m->employee?->name,
+                        $m->employee?->cuil,
+                        $m->business?->name,
+                        $m->type,
+                        $m->points,
+                        $m->reference,
+                        $m->note,
+                        $m->createdBy?->name,
+                        $m->batch ? basename($m->batch->filename) : null,
+                    ]);
+                }
+            });
+
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
-
-    // Filtros (igual que index)
-    $term = trim((string)$r->get('q'));
-    if ($term !== '') {
-        $q->where(function ($qq) use ($term) {
-            $qq->whereHas('employee', fn($q2) => $q2->where('name', 'like', "%{$term}%"))
-               ->orWhereHas('business', fn($q2) => $q2->where('name', 'like', "%{$term}%"))
-               ->orWhere('note', 'like', "%{$term}%")
-               ->orWhere('reference', 'like', "%{$term}%");
-        });
-    }
-
-    if ($r->filled('company_id'))  $q->where('company_id', (int)$r->company_id);
-    if ($r->filled('employee_id')) $q->where('employee_user_id', (int)$r->employee_id);
-    if ($r->filled('type') && $r->type !== 'all') $q->where('type', $r->type);
-    if ($r->filled('batch_id')) $q->where('batch_id', (int)$r->batch_id);
-
-    if ($r->filled('start_date')) $q->whereDate('occurred_at', '>=', $r->start_date);
-    if ($r->filled('end_date'))   $q->whereDate('occurred_at', '<=', $r->end_date);
-
-    if ($hasVoided && !$r->boolean('show_voided')) {
-        $q->whereNull('voided_at');
-    }
-
-    $q->orderByDesc('occurred_at')->orderByDesc('id');
-
-    $filename = 'points_export_' . now()->format('Ymd_His') . '.csv';
-
-    return response()->streamDownload(function () use ($q) {
-        $out = fopen('php://output', 'w');
-
-        // BOM para Excel (tildes, ñ, etc.)
-        fwrite($out, "\xEF\xBB\xBF");
-
-        fputcsv($out, [
-            'ID','Fecha','Empresa','Empleado','CUIL','Negocio','Tipo','Puntos','Referencia','Nota','Creado por','Lote'
-        ]);
-
-        $q->chunk(500, function ($rows) use ($out) {
-            foreach ($rows as $m) {
-                fputcsv($out, [
-                    $m->id,
-                    optional($m->occurred_at)->format('Y-m-d H:i:s'),
-                    $m->company?->name,
-                    $m->employee?->name,
-                    $m->employee?->cuil,
-                    $m->business?->name,
-                    $m->type,
-                    $m->points,
-                    $m->reference,
-                    $m->note,
-                    $m->createdBy?->name,
-                    $m->batch ? basename($m->batch->filename) : null,
-                ]);
-            }
-        });
-
-        fclose($out);
-    }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
-}
 
     public function void(Request $r, PointMovement $movement)
     {
@@ -468,38 +469,37 @@ $movQ = PointMovement::query()
     }
 
     private function computeTotalsForEmployee(int $employeeUserId, bool $hasVoided): array
-{
-    $q = PointMovement::query()->where('employee_user_id', $employeeUserId);
-    if ($hasVoided) $q->whereNull('voided_at');
+    {
+        $q = PointMovement::query()->where('employee_user_id', $employeeUserId);
+        if ($hasVoided) $q->whereNull('voided_at');
 
-    $earned = (int)(clone $q)->where('points', '>', 0)->sum('points');
-    $redeemAbs = (int)abs((clone $q)->where('points', '<', 0)->sum('points'));
-    $available = (int)(clone $q)->sum('points');
+        $earned = (int)(clone $q)->where('points', '>', 0)->sum('points');
+        $redeemAbs = (int)abs((clone $q)->where('points', '<', 0)->sum('points'));
+        $available = (int)(clone $q)->sum('points');
 
-    return [
-        'total_earned'   => $earned,
-        'total_redeemed' => $redeemAbs,
-        'available'      => $available,
-    ];
-}
+        return [
+            'total_earned'   => $earned,
+            'total_redeemed' => $redeemAbs,
+            'available'      => $available,
+        ];
+    }
 
     private function computeStatsForQuery($q): array
-{
-    $totalEarned = (int)(clone $q)->where('points','>',0)->sum('points');
-    $totalRedeemAbs = (int)abs((clone $q)->where('points','<',0)->sum('points'));
+    {
+        $totalEarned = (int)(clone $q)->where('points','>',0)->sum('points');
+        $totalRedeemAbs = (int)abs((clone $q)->where('points','<',0)->sum('points'));
 
-    $totalMovements = (int)(clone $q)->count();
-    $totalPoints = (int)(clone $q)->sum('points');
+        $totalMovements = (int)(clone $q)->count();
+        $totalPoints = (int)(clone $q)->sum('points');
 
-    $avg = $totalMovements > 0 ? ($totalPoints / $totalMovements) : 0;
+        $avg = $totalMovements > 0 ? ($totalPoints / $totalMovements) : 0;
 
-    return [
-        'total_points'    => $totalPoints,
-        'total_earned'    => $totalEarned,
-        'total_redeemed'  => $totalRedeemAbs,
-        'total_movements' => $totalMovements,
-        'avg_points'      => $avg,
-    ];
-}
-
+        return [
+            'total_points'    => $totalPoints,
+            'total_earned'    => $totalEarned,
+            'total_redeemed'  => $totalRedeemAbs,
+            'total_movements' => $totalMovements,
+            'avg_points'      => $avg,
+        ];
+    }
 }

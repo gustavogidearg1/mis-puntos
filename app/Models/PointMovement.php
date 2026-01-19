@@ -60,4 +60,6 @@ class PointMovement extends Model
     {
         return $this->belongsTo(PointImportBatch::class, 'batch_id');
     }
+
+
 }
