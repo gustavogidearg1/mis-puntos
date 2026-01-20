@@ -20,7 +20,6 @@ use App\Http\Controllers\Abm\PointReferenceController;
 
 Route::get('/', fn () => redirect()->route('login'));
 
-
 /**
  * Dashboard
  */
@@ -32,11 +31,9 @@ Route::get('/dashboard', fn () => view('dashboard'))
  * Perfil
  */
 Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
-
+    Route::get('/profile',  [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile',[ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile',[ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
 /**
@@ -46,34 +43,30 @@ Route::middleware('auth')->group(function () {
  */
 Route::middleware(['auth'])->group(function () {
 
-Route::get('/debug/route/{any}', function ($any) {
+    /**
+     * Debug de rutas (solo dev)
+     */
+    Route::get('/debug/route/{any}', function ($any) {
+        $path = ltrim($any, '/');
+        $request = request()->create('/' . $path, 'GET');
+        $route = app('router')->getRoutes()->match($request);
 
-    // Importante: simulamos el path real
-    $path = ltrim($any, '/');
-
-    // Buscamos la ruta que matchea ese path
-    $request = request()->create('/' . $path, 'GET');
-    $route = app('router')->getRoutes()->match($request);
-
-    dd([
-        'target' => '/' . $path,
-        'uri' => $route->uri(),
-        'name' => $route->getName(),
-        'action' => $route->getActionName(),
-        'middleware' => $route->gatherMiddleware(),
-        'roles' => auth()->user()->getRoleNames(),
-        'has_admin_empresa' => auth()->user()->hasRole('admin_empresa'),
-        'has_admin_sitio' => auth()->user()->hasRole('admin_sitio'),
-    ]);
-
-})->where('any', '.*')->middleware('auth');
+        dd([
+            'target' => '/' . $path,
+            'uri' => $route->uri(),
+            'name' => $route->getName(),
+            'action' => $route->getActionName(),
+            'middleware' => $route->gatherMiddleware(),
+            'roles' => auth()->user()->getRoleNames(),
+            'has_admin_empresa' => auth()->user()->hasRole('admin_empresa'),
+            'has_admin_sitio' => auth()->user()->hasRole('admin_sitio'),
+        ]);
+    })->where('any', '.*');
 
     /**
      * ============================
      * REDENCIONES (QR) - Negocio / Empleado
      * ============================
-     * - Negocio: crea solicitud + QR
-     * - Empleado: confirma
      */
     Route::get('/redeems/create', [RedemptionController::class, 'create'])
         ->name('redeems.create');
@@ -81,11 +74,9 @@ Route::get('/debug/route/{any}', function ($any) {
     Route::post('/redeems', [RedemptionController::class, 'store'])
         ->name('redeems.store');
 
-    // Si usás "cancel" y existe el método
     Route::patch('/redeems/{redemption}/cancel', [RedemptionController::class, 'cancel'])
         ->name('redeems.cancel');
 
-    // Confirmación / comprobante por token
     Route::get('/redeems/confirm/{token}', [RedemptionController::class, 'showConfirm'])
         ->name('redeems.confirm.show');
 
@@ -93,7 +84,7 @@ Route::get('/debug/route/{any}', function ($any) {
         ->name('redeems.confirm.do');
 
     /**
-     * Endpoint JSON para completar negocio desde QR (usado por el escáner)
+     * Endpoint JSON para completar negocio desde QR
      * Ej: /abm/businesses/1/json
      */
     Route::get('/abm/businesses/{id}/json', function ($id) {
@@ -107,8 +98,6 @@ Route::get('/debug/route/{any}', function ($any) {
             'name' => $u->name,
         ]);
     })->name('abm.businesses.json');
-
-
 
     /**
      * ============================
@@ -133,9 +122,6 @@ Route::get('/debug/route/{any}', function ($any) {
 
         Route::get('/', [PointsController::class, 'index'])->name('index');
 
-        // Void (si lo usás)
-        Route::patch('/{movement}/void', [PointsController::class, 'void'])->name('void');
-
         // Resumen (admins)
         Route::get('/summary', [PointsController::class, 'summary'])
             ->middleware('role:admin_sitio|admin_empresa')
@@ -155,6 +141,20 @@ Route::get('/debug/route/{any}', function ($any) {
             ->middleware('role:admin_sitio|admin_empresa')
             ->name('store');
 
+        // ✅ Editar / actualizar (admins)
+        Route::get('/{movement}/edit', [PointsController::class, 'edit'])
+            ->middleware('role:admin_sitio|admin_empresa')
+            ->name('edit');
+
+        Route::put('/{movement}', [PointsController::class, 'update'])
+            ->middleware('role:admin_sitio|admin_empresa')
+            ->name('update');
+
+        // Anular (si lo usás)
+        Route::patch('/{movement}/void', [PointsController::class, 'void'])
+            ->middleware('role:admin_sitio|admin_empresa')
+            ->name('void');
+
         // Detalle por empleado (admins)
         Route::get('/employee/{employee}', [PointsController::class, 'employeeDetail'])
             ->middleware('role:admin_sitio|admin_empresa')
@@ -165,7 +165,6 @@ Route::get('/debug/route/{any}', function ($any) {
             ->middleware('role:admin_sitio|admin_empresa')
             ->name('export');
     });
-
 
     /**
      * ============================
@@ -189,39 +188,34 @@ Route::get('/debug/route/{any}', function ($any) {
      * ============================
      * - admin_sitio: todo
      * - admin_empresa: todo menos companies
+     * ============================
      */
     Route::middleware(['role:admin_sitio|admin_empresa'])
-  ->prefix('abm')
-  ->name('abm.')
-  ->group(function () {
+        ->prefix('abm')
+        ->name('abm.')
+        ->group(function () {
 
-    Route::resource('paises', PaisController::class);
-    Route::resource('provincias', ProvinciaController::class);
-    Route::resource('localidades', LocalidadController::class);
+            Route::resource('paises', PaisController::class);
+            Route::resource('provincias', ProvinciaController::class);
+            Route::resource('localidades', LocalidadController::class);
 
-    // Users (ABM a mano)
-    Route::get('users', [UserController::class, 'index'])->name('users.index');
-    Route::get('users/create', [UserController::class, 'create'])->name('users.create');
-    Route::post('users', [UserController::class, 'store'])->name('users.store');
-    Route::get('users/{user}', [UserController::class, 'show'])->name('users.show');
-    Route::get('users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
-    Route::put('users/{user}', [UserController::class, 'update'])->name('users.update');
+            // Users (ABM a mano)
+            Route::get('users', [UserController::class, 'index'])->name('users.index');
+            Route::get('users/create', [UserController::class, 'create'])->name('users.create');
+            Route::post('users', [UserController::class, 'store'])->name('users.store');
+            Route::get('users/{user}', [UserController::class, 'show'])->name('users.show');
+            Route::get('users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+            Route::put('users/{user}', [UserController::class, 'update'])->name('users.update');
 
-    // Point references (CRUD completo)
-    Route::resource('point-references', PointReferenceController::class)
-      ->names('point-references'); // ✅ incluye show
+            // Point references (CRUD completo)
+            Route::resource('point-references', PointReferenceController::class)
+                ->names('point-references');
 
-    // SOLO admin_sitio puede administrar empresas
-    Route::middleware(['role:admin_sitio'])->group(function () {
-      Route::resource('companies', CompanyController::class);
-    });
+            // SOLO admin_sitio puede administrar empresas
+            Route::middleware(['role:admin_sitio'])->group(function () {
+                Route::resource('companies', CompanyController::class);
+            });
+        });
 });
-
-
-
-});
-
 
 require __DIR__ . '/auth.php';
-
-

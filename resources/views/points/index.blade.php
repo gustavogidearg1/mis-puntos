@@ -312,15 +312,22 @@
               @endif
 
               <td class="text-end">
-                <div class="btn-group btn-group-sm" role="group">
-                  @if($isSiteAdmin || $isCompanyAdmin)
-                    <a href="{{ route('points.employee.detail', $point->employee_user_id) }}"
-                       class="btn btn-outline-secondary" title="Ver empleado">
-                      <i class="bi bi-person"></i>
-                    </a>
-                  @endif
-                  {{-- Acciones futuras: editar / eliminar --}}
-                </div>
+
+
+
+<div class="btn-group btn-group-sm" role="group">
+  @if($isSiteAdmin || $isCompanyAdmin)
+    <a href="{{ route('points.employee.detail', $point->employee_user_id) }}"
+       class="btn btn-outline-secondary" title="Ver empleado">
+      <i class="bi bi-person"></i>
+    </a>
+
+    <a href="{{ route('points.edit', $point->id) }}"
+       class="btn btn-outline-primary" title="Editar movimiento">
+      <i class="bi bi-pencil"></i>
+    </a>
+  @endif
+</div>
               </td>
             </tr>
           @empty
