@@ -8,6 +8,19 @@
   font-weight: 600;
 }
 
+.sidebar-section-title{
+  background: transparent;
+  border: 0;
+  padding: .35rem 0;
+  font-weight: 600;
+  opacity: .9;
+  text-align: left;
+}
+.sidebar-section-title:focus{
+  outline: none;
+  box-shadow: none;
+}
+
 .topbar-home{
   display:flex;
   align-items:center;

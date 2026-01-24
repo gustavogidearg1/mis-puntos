@@ -18,6 +18,7 @@ use App\Http\Controllers\Abm\LocalidadController;
 use App\Http\Controllers\Abm\UserController;
 use App\Http\Controllers\Abm\PointReferenceController;
 
+
 Route::get('/', fn () => redirect()->route('login'));
 
 /**
@@ -207,7 +208,6 @@ Route::middleware(['auth'])->group(function () {
             Route::get('users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
             Route::put('users/{user}', [UserController::class, 'update'])->name('users.update');
 
-            // Point references (CRUD completo)
             Route::resource('point-references', PointReferenceController::class)
                 ->names('point-references');
 

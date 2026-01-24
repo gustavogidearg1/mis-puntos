@@ -21,23 +21,59 @@ class UserController extends Controller
         $this->middleware(['role:admin_sitio|admin_empresa']);
     }
 
+    private function isSiteAdmin(): bool
+    {
+        return auth()->user()?->hasRole('admin_sitio') ?? false;
+    }
+
+    private function isCompanyAdmin(): bool
+    {
+        return auth()->user()?->hasRole('admin_empresa') ?? false;
+    }
+
+    /**
+     * Bloquea acceso si admin_empresa intenta ver/editar usuarios de otra company.
+     */
+    private function ensureSameCompany(User $target): void
+    {
+        if ($this->isCompanyAdmin() && !$this->isSiteAdmin()) {
+            abort_unless(
+                (int) $target->company_id === (int) auth()->user()->company_id,
+                403,
+                'No tiene permisos para acceder a usuarios de otra empresa.'
+            );
+        }
+    }
+
     public function index(Request $request)
     {
         $q         = $request->string('q')->toString();
         $companyId = $request->input('company_id');
         $roleName  = $request->input('role');
 
-        $companies = Company::query()->orderBy('name')->get();
-        $roles     = Role::query()->orderBy('name')->get();
+        // ✅ Si es admin_empresa (no admin_sitio), forzamos su company
+        if ($this->isCompanyAdmin() && !$this->isSiteAdmin()) {
+            $companyId = auth()->user()->company_id;
+        }
+
+        // ✅ Para el filtro visual: admin_empresa solo ve su empresa
+        $companies = Company::query()
+            ->when($this->isCompanyAdmin() && !$this->isSiteAdmin(), fn($qq) => $qq->whereKey($companyId))
+            ->orderBy('name')
+            ->get();
+
+        $roles = Role::query()->orderBy('name')->get();
 
         $users = User::query()
             ->with(['roles', 'company'])
             ->when($q, function ($qq) use ($q) {
                 $qq->where(function ($w) use ($q) {
                     $w->where('name', 'like', "%{$q}%")
-                        ->orWhere('email', 'like', "%{$q}%");
+                      ->orWhere('email', 'like', "%{$q}%")
+                      ->orWhere('cuil', 'like', "%{$q}%");
                 });
             })
+            // ✅ scope por company (obligatorio para admin_empresa)
             ->when($companyId, fn($qq) => $qq->where('company_id', $companyId))
             ->when($roleName, function ($qq) use ($roleName) {
                 $qq->whereHas('roles', fn($r) => $r->where('name', $roleName));
@@ -51,29 +87,27 @@ class UserController extends Controller
 
     public function create()
     {
-        $roles      = Role::query()->orderBy('name')->pluck('name'); // strings
-        $companies  = Company::query()->orderBy('name')->get();
+        $roles = Role::query()->orderBy('name')->pluck('name');
 
-        $paises     = \App\Models\Pais::query()->orderBy('nombre')->get();
-        $provincias = \App\Models\Provincia::query()->orderBy('nombre')->get();
+        // ✅ admin_empresa: solo su empresa
+        $companies = Company::query()
+            ->when($this->isCompanyAdmin() && !$this->isSiteAdmin(), fn($qq) => $qq->whereKey(auth()->user()->company_id))
+            ->orderBy('name')
+            ->get();
+
+        $paises      = \App\Models\Pais::query()->orderBy('nombre')->get();
+        $provincias  = \App\Models\Provincia::query()->orderBy('nombre')->get();
         $localidades = \App\Models\Localidad::query()->orderBy('nombre')->get();
 
         return view('abm.users.create', compact('roles', 'companies', 'paises', 'provincias', 'localidades'));
     }
 
-    /**
-     * Normaliza inputs sensibles y refuerza reglas de seguridad:
-     * - company_id: si es admin_empresa (y no admin_sitio), se fuerza al company del usuario logueado.
-     * - cuil: se guarda/valida solo con números (sin guiones/espacios)
-     */
     private function normalizeAndSecureRequest(Request $request): void
     {
-        // Blindaje: admin_empresa NO elige company_id desde el front
-        if (auth()->user()?->hasRole('admin_empresa') && !auth()->user()?->hasRole('admin_sitio')) {
+        if ($this->isCompanyAdmin() && !$this->isSiteAdmin()) {
             $request->merge(['company_id' => auth()->user()->company_id]);
         }
 
-        // Normalizar CUIL (solo números)
         $request->merge([
             'cuil' => preg_replace('/\D+/', '', (string) $request->input('cuil')),
         ]);
@@ -88,14 +122,10 @@ class UserController extends Controller
             'email'    => ['required', 'email', 'max:180', 'unique:users,email'],
             'password' => ['required', 'string', 'min:6', 'max:255', 'confirmed'],
 
-
             'cuil' => [
                 'required',
                 'string',
-                Rule::unique('users', 'cuil')->where(
-                    fn($q) =>
-                    $q->where('company_id', $request->input('company_id'))
-                ),
+                Rule::unique('users', 'cuil')->where(fn($q) => $q->where('company_id', $request->input('company_id'))),
             ],
 
             'direccion' => ['nullable', 'string', 'max:255'],
@@ -134,31 +164,35 @@ class UserController extends Controller
         ]);
 
         $user->syncRoles($data['roles'] ?? []);
-
-        // Cargar relación para mostrar empresa en el email
         $user->load('company');
 
-        // Enviar email de confirmación
         Mail::to($user->email)->send(new UserRegisteredMail($user));
 
-        // Si acá disparás email de verificación/confirmación, el overlay en la vista va perfecto.
         return redirect()->route('abm.users.index')->with('success', 'User created successfully.');
     }
 
     public function show(User $user)
     {
+        $this->ensureSameCompany($user);
+
         $user->load(['roles', 'company', 'pais', 'provincia', 'localidad']);
         return view('abm.users.show', compact('user'));
     }
 
     public function edit(User $user)
     {
-        $companies   = Company::query()->orderBy('name')->get();
+        $this->ensureSameCompany($user);
+
+        $companies = Company::query()
+            ->when($this->isCompanyAdmin() && !$this->isSiteAdmin(), fn($qq) => $qq->whereKey(auth()->user()->company_id))
+            ->orderBy('name')
+            ->get();
+
         $paises      = \App\Models\Pais::query()->orderBy('nombre')->get();
         $provincias  = \App\Models\Provincia::query()->orderBy('nombre')->get();
         $localidades = \App\Models\Localidad::query()->orderBy('nombre')->get();
 
-        $roles            = Role::query()->orderBy('name')->pluck('name'); // strings
+        $roles            = Role::query()->orderBy('name')->pluck('name');
         $currentRoleNames = $user->roles->pluck('name')->all();
 
         return view('abm.users.edit', compact(
@@ -174,6 +208,8 @@ class UserController extends Controller
 
     public function update(Request $request, User $user)
     {
+        $this->ensureSameCompany($user);
+
         $this->normalizeAndSecureRequest($request);
 
         $data = $request->validate([
@@ -215,7 +251,6 @@ class UserController extends Controller
             'provincia_id'     => $data['provincia_id'] ?? null,
             'localidad_id'     => $data['localidad_id'] ?? null,
             'fecha_nacimiento' => $data['fecha_nacimiento'] ?? null,
-            // Como usás select, siempre viene. Si quisieras "no enviado no cambia", lo ajustamos.
             'activo'           => array_key_exists('activo', $data) ? (bool)$data['activo'] : (bool)$user->activo,
         ];
 

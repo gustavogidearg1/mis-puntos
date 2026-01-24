@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title','Users')
+@section('title','Usuarios')
 
 @section('content')
 
@@ -103,12 +103,16 @@
                 Nombre {!! sort_icon_users('name') !!}
               </a>
             </th>
-            <th>
-              <a class="{{ sort_class_users('email') }}" href="{{ sort_url_users('email') }}">
-                Email {!! sort_icon_users('email') !!}
-              </a>
-            </th>
-            <th>DNI</th>
+
+<th>
+  <a class="{{ sort_class_users('email') }}" href="{{ sort_url_users('email') }}">
+    Email {!! sort_icon_users('email') !!}
+  </a>
+</th>
+
+<th>Empresa</th>
+
+<th>DNI</th>
             <th>Roles</th>
             <th>
               <a class="{{ sort_class_users('activo') }}" href="{{ sort_url_users('activo') }}">
@@ -123,8 +127,16 @@
           @forelse($users as $user)
             <tr>
               <td class="fw-semibold">{{ $user->name }}</td>
-              <td>{{ $user->email }}</td>
-              <td>{{ $user->cuil ?? '—' }}</td>
+<td>{{ $user->email }}</td>
+
+<td>
+  <span class="badge text-bg-light">
+    <i class="bi bi-buildings me-1"></i>
+    {{ $user->company?->name ?? '—' }}
+  </span>
+</td>
+
+<td>{{ $user->cuil ?? '—' }}</td>
               <td>
                 @forelse($user->roles as $role)
                   <span class="badge text-bg-secondary me-1">{{ $role->name }}</span>

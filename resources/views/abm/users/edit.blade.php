@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title','Edit User - '.$user->name)
+@section('title','Editar usuario - '.$user->name)
 
 @section('content')
 <div class="card mat-card">
