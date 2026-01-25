@@ -1,3 +1,4 @@
+{{-- resources/views/layouts/partials/right_sidebar.blade.php --}}
 @php
   $isOffcanvas = $isOffcanvas ?? false;
   $r = request()->route()?->getName() ?? '';
@@ -17,6 +18,9 @@
   $showBusiness = !$showAdminSite && !$showAdminCompany && $isBusiness;
   $showEmployee = !$showAdminSite && !$showAdminCompany && $isEmployee;
 
+  // Rendiciones visibles para negocio + admins
+  $canSeeSettlements = ($isBusiness || $isCompanyAdmin || $isSiteAdmin);
+
   // Helpers
   $isActive = fn($name) => $r === $name;
   $starts   = fn($prefix) => str_starts_with($r, $prefix);
@@ -30,8 +34,10 @@
   );
 
   $openBusiness = $showBusiness && (
-      $starts('redeems.')
+      $starts('redeems.') && !$starts('redeems.rendiciones_empresa.')
   );
+
+  $openSettlements = $canSeeSettlements && $starts('redeems.rendiciones_empresa.');
 
   $openAdminPoints = ($showAdminSite || $showAdminCompany) && (
       $starts('points.')
@@ -48,11 +54,8 @@
 
   // IDs únicos por si el sidebar se renderiza 2 veces (desktop + offcanvas)
   $uid = $isOffcanvas ? 'oc' : 'sb';
-
   $collapseId = fn($key) => "collapse-{$uid}-{$key}";
 @endphp
-
-
 
 <nav class="sidebar-nav {{ $isOffcanvas ? 'is-offcanvas' : '' }} d-flex flex-column">
 
@@ -131,7 +134,7 @@
       </button>
 
       <div class="collapse {{ $openBusiness ? 'show' : '' }}" id="{{ $collapseId('business') }}">
-        <a class="sidebar-link {{ $starts('redeems.') ? 'active' : '' }}"
+        <a class="sidebar-link {{ ($starts('redeems.') && !$starts('redeems.manual.') && !$starts('redeems.rendiciones_empresa.')) ? 'active' : '' }}"
            href="{{ route('redeems.create') }}"
            @if(!$isOffcanvas) data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Consumir puntos" @endif>
           <i class="bi bi-qr-code-scan"></i>
@@ -141,11 +144,40 @@
     </div>
   @endif
 
+  {{-- ====== RENDICIONES (Negocio + Admin empresa + Admin sitio) ====== --}}
+  @if($canSeeSettlements)
+    <div class="sidebar-section px-3 pt-3">
+      <button class="sidebar-section-title w-100 d-flex align-items-center justify-content-between"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#{{ $collapseId('settlements') }}"
+              aria-expanded="{{ $openSettlements ? 'true' : 'false' }}"
+              aria-controls="{{ $collapseId('settlements') }}">
+        <span>Rendiciones</span>
+        <i class="bi bi-chevron-down small opacity-75"></i>
+      </button>
+
+      <div class="collapse {{ $openSettlements ? 'show' : '' }}" id="{{ $collapseId('settlements') }}">
+        <a class="sidebar-link {{ $r === 'redeems.rendiciones_empresa.index' ? 'active' : '' }}"
+           href="{{ route('redeems.rendiciones_empresa.index') }}">
+          <i class="bi bi-receipt"></i>
+          <span class="link-text">Rendiciones a empresa</span>
+        </a>
+
+        <a class="sidebar-link {{ $r === 'redeems.rendiciones_empresa.settlements' ? 'active' : '' }}"
+           href="{{ route('redeems.rendiciones_empresa.settlements') }}">
+          <i class="bi bi-journal-check"></i>
+          <span class="link-text">Rendiciones realizadas</span>
+        </a>
+      </div>
+    </div>
+  @endif
+
   {{-- ====== ADMIN (EMPRESA o SITIO) ====== --}}
   @if($showAdminCompany || $showAdminSite)
-
-    {{-- Encabezado admin (texto distinto según rol) --}}
     <div class="sidebar-section px-3 pt-3">
+
+      {{-- Encabezado admin --}}
       <div class="sidebar-section-title">
         {{ $showAdminSite ? 'Administrador del sitio' : 'Administrador de empresa' }}
       </div>
@@ -162,7 +194,6 @@
       </button>
 
       <div class="collapse {{ $openAdminPoints ? 'show' : '' }}" id="{{ $collapseId('admin_points') }}">
-
         <a class="sidebar-link {{ $starts('points.') && !$starts('points.import.') ? 'active' : '' }}"
            href="{{ route('points.index') }}"
            @if(!$isOffcanvas) data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Gestión de puntos" @endif>
@@ -185,7 +216,7 @@
         </a>
       </div>
 
-      {{-- === Grupo: ABM / Configuración === --}}
+      {{-- === Grupo: Configuración === --}}
       <button class="sidebar-section-title w-100 d-flex align-items-center justify-content-between mt-3"
               type="button"
               data-bs-toggle="collapse"
@@ -198,7 +229,6 @@
 
       <div class="collapse {{ $openAdminAbm ? 'show' : '' }}" id="{{ $collapseId('admin_abm') }}">
 
-        {{-- Solo admin_sitio --}}
         @if($showAdminSite)
           <a class="sidebar-link {{ $starts('abm.companies.') ? 'active' : '' }}"
              href="{{ route('abm.companies.index') }}"
@@ -240,11 +270,13 @@
           <span class="link-text">Localidades</span>
         </a>
       </div>
+
     </div>
   @endif
 
   {{-- Footer --}}
   <div class="sidebar-footer mt-auto px-3 py-3">
+
     <div class="sidebar-user"
          @if(!$isOffcanvas) data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="{{ $u->name ?? '' }}" @endif>
       <div class="user-dot"></div>
@@ -255,14 +287,14 @@
     </div>
 
     {{-- Company (no mostrar para admin_sitio) --}}
-@if(!$isSiteAdmin)
-  <div class="user-company mt-1">
-    <span class="badge text-bg-light">
-      <i class="bi bi-buildings me-1"></i>
-      {{ $u?->company?->name ?? 'Sin empresa' }}
-    </span>
-  </div>
-@endif
+    @if(!$isSiteAdmin)
+      <div class="user-company mt-1">
+        <span class="badge text-bg-light">
+          <i class="bi bi-buildings me-1"></i>
+          {{ $u?->company?->name ?? 'Sin empresa' }}
+        </span>
+      </div>
+    @endif
 
     <form method="POST" action="{{ route('logout') }}" class="mt-2">
       @csrf
@@ -273,5 +305,6 @@
         <span class="link-text">Cerrar sesión</span>
       </button>
     </form>
+
   </div>
 </nav>

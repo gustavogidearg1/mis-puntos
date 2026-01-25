@@ -18,13 +18,15 @@ use App\Http\Controllers\Abm\LocalidadController;
 use App\Http\Controllers\Abm\UserController;
 use App\Http\Controllers\Abm\PointReferenceController;
 
+// Rendiciones
+use App\Http\Controllers\SettlementController;
 
-Route::get('/', fn () => redirect()->route('login'));
+Route::get('/', fn() => redirect()->route('login'));
 
 /**
  * Dashboard
  */
-Route::get('/dashboard', fn () => view('dashboard'))
+Route::get('/dashboard', fn() => view('dashboard'))
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
@@ -33,8 +35,8 @@ Route::get('/dashboard', fn () => view('dashboard'))
  */
 Route::middleware('auth')->group(function () {
     Route::get('/profile',  [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile',[ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile',[ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
 /**
@@ -85,13 +87,48 @@ Route::middleware(['auth'])->group(function () {
         ->name('redeems.confirm.do');
 
     /**
+     * ============================
+     * RENDICIONES A EMPRESA (admin/negocio)
+     * ============================
+     */
+    Route::middleware(['role:admin_sitio|admin_empresa|negocio'])
+        ->prefix('redeems/rendiciones-empresa')
+        ->name('redeems.rendiciones_empresa.')
+        ->group(function () {
+
+            // Index consumos a rendir
+            Route::get('/', [SettlementController::class, 'consumosIndex'])
+                ->name('index');
+
+            // Crear rendición con consumos seleccionados
+            Route::post('/', [SettlementController::class, 'store'])
+                ->name('store');
+
+            // Listado de rendiciones realizadas
+            Route::get('/rendiciones', [SettlementController::class, 'settlementsIndex'])
+                ->name('settlements');
+
+            // Ver rendición
+            Route::get('/{settlement}', [SettlementController::class, 'show'])
+                ->name('show');
+
+            // Marcar como facturada
+            Route::post('/{settlement}/facturar', [SettlementController::class, 'markInvoiced'])
+                ->name('facturar');
+
+            // Revertir a pendiente (anula rendición y devuelve consumos)
+            Route::post('/{settlement}/revertir', [SettlementController::class, 'revertToPending'])
+                ->name('revertir');
+        });
+
+    /**
      * Endpoint JSON para completar negocio desde QR
      * Ej: /abm/businesses/1/json
      */
     Route::get('/abm/businesses/{id}/json', function ($id) {
         $u = User::query()
             ->whereKey($id)
-            ->whereHas('roles', fn ($q) => $q->where('name', 'negocio'))
+            ->whereHas('roles', fn($q) => $q->where('name', 'negocio'))
             ->firstOrFail();
 
         return response()->json([
@@ -123,17 +160,14 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('/', [PointsController::class, 'index'])->name('index');
 
-        // Resumen (admins)
         Route::get('/summary', [PointsController::class, 'summary'])
             ->middleware('role:admin_sitio|admin_empresa')
             ->name('summary');
 
-        // Alias español
         Route::get('/resumen', [PointsController::class, 'summary'])
             ->middleware('role:admin_sitio|admin_empresa')
             ->name('resumen');
 
-        // Crear / guardar manual (admins)
         Route::get('/crear', [PointsController::class, 'create'])
             ->middleware('role:admin_sitio|admin_empresa')
             ->name('create');
@@ -142,7 +176,6 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('role:admin_sitio|admin_empresa')
             ->name('store');
 
-        // ✅ Editar / actualizar (admins)
         Route::get('/{movement}/edit', [PointsController::class, 'edit'])
             ->middleware('role:admin_sitio|admin_empresa')
             ->name('edit');
@@ -151,17 +184,14 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('role:admin_sitio|admin_empresa')
             ->name('update');
 
-        // Anular (si lo usás)
         Route::patch('/{movement}/void', [PointsController::class, 'void'])
             ->middleware('role:admin_sitio|admin_empresa')
             ->name('void');
 
-        // Detalle por empleado (admins)
         Route::get('/employee/{employee}', [PointsController::class, 'employeeDetail'])
             ->middleware('role:admin_sitio|admin_empresa')
             ->name('employee.detail');
 
-        // Export (admins)
         Route::get('/export', [PointsController::class, 'export'])
             ->middleware('role:admin_sitio|admin_empresa')
             ->name('export');
@@ -186,9 +216,6 @@ Route::middleware(['auth'])->group(function () {
     /**
      * ============================
      * ABM
-     * ============================
-     * - admin_sitio: todo
-     * - admin_empresa: todo menos companies
      * ============================
      */
     Route::middleware(['role:admin_sitio|admin_empresa'])

@@ -57,4 +57,10 @@ class PointRedemption extends Model
 {
     return $this->belongsTo(User::class, 'confirmed_by');
 }
+
+public function settlement(): BelongsTo
+{
+  return $this->belongsTo(PointSettlement::class, 'settlement_id');
+}
+
 }
