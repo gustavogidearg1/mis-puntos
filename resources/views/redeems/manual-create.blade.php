@@ -90,10 +90,27 @@
   </div>
 </div>
 
+{{-- ============================
+   MODAL: Loading al confirmar consumo
+   ============================ --}}
+<div class="modal fade" id="loadingModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:16px;">
+      <div class="modal-body p-4 text-center">
+        <div class="spinner-border" role="status" aria-hidden="true"></div>
+        <div class="mt-3 fw-semibold">Procesando consumo…</div>
+        <div class="text-muted small">Estamos registrando el consumo y enviando notificaciones.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const saldo = {{ (int)$saldo }};
+  const form = document.getElementById('manualForm');
   const pointsInput = document.getElementById('pointsInput');
   const warnSaldo = document.getElementById('warnSaldo');
   const submitBtn = document.getElementById('submitBtn');
@@ -114,7 +131,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
   pointsInput.addEventListener('input', updateSaldoUI);
   updateSaldoUI();
+
+  // ============================
+  // Loading modal al enviar
+  // ============================
+  let submitting = false;
+
+  form?.addEventListener('submit', (e) => {
+    if (submitting) return; // evita loop
+    e.preventDefault();
+
+    // si está disabled por saldo / min, no mandamos
+    if (submitBtn.disabled) return;
+
+    submitting = true;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Enviando…';
+
+    try {
+      const modalEl = document.getElementById('loadingModal');
+      if (modalEl && window.bootstrap?.Modal) {
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+
+        // IMPORTANTE: darle un frame para que se renderice el modal
+        requestAnimationFrame(() => {
+          setTimeout(() => form.submit(), 80);
+        });
+      } else {
+        // fallback si no está bootstrap JS cargado
+        setTimeout(() => form.submit(), 0);
+      }
+    } catch (err) {
+      // fallback duro
+      form.submit();
+    }
+  });
 });
 </script>
 @endpush
+
+
 @endsection

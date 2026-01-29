@@ -50,7 +50,7 @@
           </div>
 
           <div class="mt-3">
-            <label class="form-label fw-semibold mb-1">Código /Token</label>
+            <label class="form-label fw-semibold mb-1">Código / Token</label>
             <div class="input-group">
               <input id="tokenInput" class="form-control mono" value="{{ $redemption->token }}" readonly>
               <button class="btn btn-outline-secondary" type="button" onclick="copyText('tokenInput')">

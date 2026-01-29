@@ -347,13 +347,19 @@ class RedemptionController extends Controller
             return back()->withErrors(['points' => $result['msg']])->withInput();
         }
 
-        // Mail al negocio (opcional)
-        $mov = $result['movement'];
-        $mov->load(['employee','business']);
+// Mail / notificaciones
+$mov = $result['movement'];
+$mov->load(['employee','business']);
 
-        if (!empty($mov->business?->email)) {
-            $mov->business->notify(new RedencionConfirmadaNegocio($mov));
-        }
+// 1) Negocio
+if (!empty($mov->business?->email)) {
+    $mov->business->notify(new RedencionConfirmadaNegocio($mov));
+}
+
+// 2) Empleado (el que hizo el consumo)
+if (!empty($mov->employee?->email)) {
+    $mov->employee->notify(new MovimientoPuntosCreado($mov));
+}
 
         return redirect()
             ->route('redeems.confirm.show', $result['redemption']->token)
