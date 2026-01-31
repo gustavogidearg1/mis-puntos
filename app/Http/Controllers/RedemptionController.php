@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 
 class RedemptionController extends Controller
 {
@@ -173,8 +174,27 @@ class RedemptionController extends Controller
         $url = route('redeems.confirm.show', $redemption->token);
 
         // Notificación al empleado (opcional)
-        // $mov = $result['movement']->load('employee');
-        // if (!empty($mov->employee?->email)) $mov->employee->notify(new MovimientoPuntosCreado($mov));
+try {
+    $mov = $result['movement']->load(['employee','business']);
+
+    // 1) Email al empleado
+    if (!empty($mov->employee?->email)) {
+        $mov->employee->notify(new MovimientoPuntosCreado($mov));
+    }
+
+    // 2) Email al negocio (si querés avisarle al mismo negocio que generó el consumo)
+    // Evita duplicar si por alguna razón employee == business (raro, pero por las dudas)
+    if (!empty($mov->business?->email) && (int)$mov->business->id !== (int)$mov->employee_user_id) {
+        $mov->business->notify(new RedencionConfirmadaNegocio($mov));
+    }
+
+} catch (\Throwable $e) {
+    Log::error('Error enviando notificaciones de consumo (store)', [
+        'movement_id' => $result['movement']->id ?? null,
+        'redemption_id' => $redemption->id ?? null,
+        'error' => $e->getMessage(),
+    ]);
+}
 
         return view('redeems.created', [
             'redemption' => $redemption,
