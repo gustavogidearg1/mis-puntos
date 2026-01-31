@@ -54,7 +54,7 @@
 
       </div>
 
-      <form method="POST" action="{{ route('redeems.store') }}">
+      <form method="POST" action="{{ route('redeems.store') }}" id="redeemForm">
         @csrf
 
         <div class="row g-3 mb-3">
@@ -179,9 +179,84 @@
   </div>
 </div>
 
+{{-- ============================
+   MODAL: Loading al enviar consumo
+   ============================ --}}
+<div class="modal fade" id="loadingModal" tabindex="-1" aria-hidden="true"
+     data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:16px;">
+      <div class="modal-body p-4 text-center">
+        <div class="spinner-border" role="status" aria-hidden="true"></div>
+        <div class="mt-3 fw-semibold">Generando consumo…</div>
+        <div class="text-muted small">Registrando y enviando correos. No cierres esta ventana.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+
+  // ============================
+  // Loading modal al enviar form (SIEMPRE)
+  // ============================
+  const formEl = document.getElementById('redeemForm');
+
+function showFallbackOverlay(){
+  // overlay simple (sin bootstrap)
+  let ov = document.getElementById('loadingOverlayFallback');
+  if (ov) return;
+
+  ov = document.createElement('div');
+  ov.id = 'loadingOverlayFallback';
+  ov.style.position = 'fixed';
+  ov.style.inset = '0';
+  ov.style.background = 'rgba(0,0,0,.35)';
+  ov.style.display = 'flex';
+  ov.style.alignItems = 'center';
+  ov.style.justifyContent = 'center';
+  ov.style.zIndex = '99999';
+  ov.innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:20px 22px;min-width:280px;text-align:center;">
+      <div class="spinner-border" role="status" aria-hidden="true"></div>
+      <div style="margin-top:12px;font-weight:700;">Generando consumo…</div>
+      <div style="font-size:12px;color:#6c757d;margin-top:4px;">Registrando y enviando correos.</div>
+    </div>
+  `;
+  document.body.appendChild(ov);
+}
+
+if (formEl) {
+  let submitting = false;
+
+  formEl.addEventListener('submit', (e) => {
+    if (submitting) return;
+    submitting = true;
+
+    const modalEl = document.getElementById('loadingModal');
+
+    // 1) si existe bootstrap.Modal -> modal
+    if (modalEl && window.bootstrap?.Modal) {
+      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      modal.show();
+      e.preventDefault();
+      requestAnimationFrame(() => setTimeout(() => formEl.submit(), 80));
+      return;
+    }
+
+    // 2) fallback overlay (sin bootstrap JS)
+    showFallbackOverlay();
+    // acá NO prevenimos submit: dejamos que navegue normal
+  });
+}
+
+
+  // ============================
+  // Buscador de empleados (solo si existen elementos)
+  // ============================
   const employeeModalEl = document.getElementById('employeeModal');
   const inputEl         = document.getElementById('employeeSearchInput');
   const listEl          = document.getElementById('employeeResults');
@@ -189,7 +264,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const selectEl        = document.getElementById('employeeSelect');
   const previewEl       = document.getElementById('selectedEmployeePreview');
 
-  if (!employeeModalEl || !inputEl || !listEl || !emptyEl || !selectEl) return;
+  const hasEmployeeModal = employeeModalEl && inputEl && listEl && emptyEl && selectEl;
+  if (!hasEmployeeModal) return;
 
   function normalize(s){ return String(s || '').toLowerCase().trim(); }
   function onlyDigits(s){ return String(s || '').replace(/\D/g, ''); }
@@ -248,28 +324,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
   inputEl.addEventListener('input', () => filterEmployees(inputEl.value));
 
-listEl.addEventListener('click', (e) => {
-  const btn = e.target.closest('.employee-result');
-  if (!btn) return;
+  listEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('.employee-result');
+    if (!btn) return;
 
-  const id = String(btn.dataset.id || '');
-  selectEl.value = id;
+    const id = String(btn.dataset.id || '');
+    selectEl.value = id;
+    selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+    updatePreview();
 
-  // disparar change para otros listeners
-  selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+    // Cerrar modal (sin hacks de backdrop)
+    const instance = bootstrap.Modal.getOrCreateInstance(employeeModalEl);
+    instance.hide();
+  });
 
-  // Cerrar modal SIEMPRE
-  const instance = bootstrap.Modal.getOrCreateInstance(employeeModalEl);
-  instance.hide();
-
-  setTimeout(() => {
-  document.body.classList.remove('modal-open');
-  document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-}, 300);
-
-});
-
+  selectEl.addEventListener('change', updatePreview);
+  updatePreview();
 });
 </script>
+
 @endpush
 @endsection
