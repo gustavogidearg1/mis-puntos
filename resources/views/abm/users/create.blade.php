@@ -6,7 +6,7 @@
 <div class="card mat-card">
   <div class="mat-header">
     <h3 class="mat-title mb-0">
-      <i class="bi bi-person-plus"></i> New User
+      <i class="bi bi-person-plus"></i> Nuevo Usuario
     </h3>
     <div class="ms-auto">
       <a href="{{ route('abm.users.index') }}" class="btn btn-outline-secondary btn-sm">Back</a>
@@ -24,8 +24,8 @@
      Datos básicos
 ========================= --}}
 
-
-      <div class="col-md-6">
+<div class="row">
+ <div class="col-4">
         <label class="form-label">Name</label>
         <input name="name"
                class="form-control @error('name') is-invalid @enderror"
@@ -34,7 +34,7 @@
         @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
       </div>
 
-      <div class="col-md-6">
+      <div class="col-4">
         <label class="form-label">Email</label>
         <input name="email"
                type="email"
@@ -44,7 +44,7 @@
         @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
       </div>
 
-      <div class="col-md-6">
+      <div class="col-4">
         <label class="form-label">CUIL</label>
         <input name="cuil"
                class="form-control @error('cuil') is-invalid @enderror"
@@ -53,7 +53,10 @@
         @error('cuil') <div class="invalid-feedback">{{ $message }}</div> @enderror
       </div>
 
-      <div class="col-md-6">
+</div>
+
+<div class="row">
+      <div class="col-8">
         <label class="form-label">Dirección</label>
 
         <input name="direccion"
@@ -66,38 +69,22 @@
         @error('direccion') <div class="invalid-feedback">{{ $message }}</div> @enderror
       </div>
 
+      <div class="col-4">
+  <label class="form-label">Teléfono</label>
+  <input name="telefono"
+         class="form-control @error('telefono') is-invalid @enderror"
+         value="{{ old('telefono') }}"
+         placeholder="+54 9 351 123-4567"
+         maxlength="30">
+  @error('telefono') <div class="invalid-feedback">{{ $message }}</div> @enderror
+</div>
 
-      {{-- =========================
-           Ubicación (País/Prov/Loc)
-           (simple por ahora, sin AJAX)
-      ========================== --}}
-      <div class="col-md-4">
-        <label class="form-label">País</label>
-        <select name="pais_id" class="form-select @error('pais_id') is-invalid @enderror">
-          <option value="">—</option>
-          @foreach($paises as $p)
-            <option value="{{ $p->id }}" @selected((string)old('pais_id')===(string)$p->id)>
-              {{ $p->nombre }}
-            </option>
-          @endforeach
-        </select>
-        @error('pais_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
-      </div>
+</div>
 
-      <div class="col-md-4">
-        <label class="form-label">Provincia</label>
-        <select name="provincia_id" class="form-select @error('provincia_id') is-invalid @enderror">
-          <option value="">—</option>
-          @foreach($provincias as $prov)
-            <option value="{{ $prov->id }}" @selected((string)old('provincia_id')===(string)$prov->id)>
-              {{ $prov->nombre }}
-            </option>
-          @endforeach
-        </select>
-        @error('provincia_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
-      </div>
 
-      <div class="col-md-4">
+<div class="row">
+
+         <div class="col-4">
         <label class="form-label">Localidad</label>
         <select name="localidad_id" class="form-select @error('localidad_id') is-invalid @enderror">
           <option value="">—</option>
@@ -110,6 +97,35 @@
         @error('localidad_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
       </div>
 
+
+
+      <div class="col-4">
+        <label class="form-label">Provincia</label>
+        <select name="provincia_id" class="form-select @error('provincia_id') is-invalid @enderror">
+          <option value="">—</option>
+          @foreach($provincias as $prov)
+            <option value="{{ $prov->id }}" @selected((string)old('provincia_id')===(string)$prov->id)>
+              {{ $prov->nombre }}
+            </option>
+          @endforeach
+        </select>
+        @error('provincia_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+      </div>
+
+ <div class="col-4">
+        <label class="form-label">País</label>
+        <select name="pais_id" class="form-select @error('pais_id') is-invalid @enderror">
+          <option value="">—</option>
+          @foreach($paises as $p)
+            <option value="{{ $p->id }}" @selected((string)old('pais_id')===(string)$p->id)>
+              {{ $p->nombre }}
+            </option>
+          @endforeach
+        </select>
+        @error('pais_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+      </div>
+
+      </div>
       {{-- =========================
            Company + Estado
       ========================== --}}
@@ -223,7 +239,7 @@
 @endphp
 
       <div class="col-12">
-        <label class="form-label">Roles</label>
+        <label class="form-label"><h3>Roles</h3></label>
 
         @if($canEditRoles)
           <div class="d-flex flex-wrap gap-2">
@@ -251,8 +267,8 @@
       </div>
 
       <div class="col-12 d-flex justify-content-end gap-2">
-        <a href="{{ route('abm.users.index') }}" class="btn btn-outline-secondary">Cancel</a>
-        <button class="btn btn-primary btn-mat"><i class="bi bi-check2"></i> Create</button>
+        <a href="{{ route('abm.users.index') }}" class="btn btn-outline-secondary">Cancelar</a>
+        <button class="btn btn-primary btn-mat"><i class="bi bi-check2"></i> Crear</button>
       </div>
     </form>
   </div>

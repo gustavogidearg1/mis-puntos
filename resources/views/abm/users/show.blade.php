@@ -11,9 +11,10 @@
 
   <div class="card mat-card mt-3">
     <div class="mat-header">
-      <h3 class="mat-title mb-0">
-        <i class="bi bi-qr-code me-2"></i> QR del Negocio: <h3 class="mat-title mb-0"><i class="bi bi-person-badge"></i> {{ $user->name }}</h3>
-      </h3>
+<h3 class="mat-title mb-0">
+  <i class="bi bi-qr-code me-2"></i> QR del Negocio:
+  <span class="ms-1"><i class="bi bi-person-badge"></i> {{ $user->name }}</span>
+</h3>
 
       <div class="ms-auto d-flex gap-2">
         <button type="button" class="btn btn-outline-primary btn-mat" onclick="window.print()">
@@ -22,34 +23,48 @@
       </div>
     </div>
 
-    <div class="card-body">
-      <div class="row g-3 align-items-center">
-        <div class="col-12 col-md-4">
-          <div class="p-3 bg-white border rounded-4 d-flex justify-content-center">
-            {!! \SimpleSoftwareIO\QrCode\Facades\QrCode::size(220)->margin(1)->generate($qrUrl) !!}
-          </div>
+<div class="card-body">
+  <div class="row g-3 justify-content-center">
+    <div class="col-12 col-lg-8">
+      <div class="p-3 p-md-4 bg-white border rounded-4 d-flex flex-column align-items-center">
+
+        {{-- QR más grande --}}
+        <div class="qr-wrap">
+          {!! \SimpleSoftwareIO\QrCode\Facades\QrCode::size(460)->margin(1)->generate($qrUrl) !!}
         </div>
 
-        <div class="col-12 col-md-8">
-          <div class="mb-2">
-            <div class="fw-semibold">Link (para copiar / WhatsApp)</div>
-            <div class="input-group">
-              <input id="qrBusinessUrl" class="form-control" value="{{ $qrUrl }}" readonly>
-              <button class="btn btn-outline-secondary" type="button" onclick="copyText('qrBusinessUrl')">
-                <i class="bi bi-clipboard"></i> Copiar
-              </button>
-            </div>
-            <div class="form-text text-muted">
-              El empleado escanea este QR y se abre la pantalla con este negocio precargado.
-            </div>
+        <div class="mt-3 text-center">
+          <div class="form-text text-muted">
+            El empleado escanea este QR y se abre la pantalla con este negocio precargado.
           </div>
 
-          <div class="alert alert-info mb-0">
+          <div class="alert alert-info mt-3 mb-0">
             Recomendación: imprimilo y pegalo en la caja del comercio.
           </div>
         </div>
+
       </div>
     </div>
+  </div>
+</div>
+
+<style>
+  /* Hace que el SVG del QR se adapte bien y se vea grande */
+  .qr-wrap svg{
+    width: 100% !important;
+    height: auto !important;
+    max-width: 520px;     /* controla "lo grande" */
+  }
+
+  /* Ajuste especial para impresión (opcional pero útil) */
+  @media print{
+    .qr-wrap svg{
+      max-width: 650px;
+    }
+  }
+</style>
+
+
   </div>
 
   <script>
@@ -109,6 +124,11 @@
             <div class="text-muted small">Direccion</div>
             <div class="fw-semibold">{{ $user->direccion ?? '—' }}</div>
           </div>
+<div class="col-md-4">
+  <div class="text-muted small">Teléfono</div>
+  <div class="fw-semibold">{{ $user->telefono ?? '—' }}</div>
+</div>
+
 
           <div class="col-md-4">
             <div class="text-muted small">Fecha de nacimiento</div>

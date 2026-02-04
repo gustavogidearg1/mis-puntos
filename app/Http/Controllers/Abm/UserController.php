@@ -108,9 +108,12 @@ class UserController extends Controller
             $request->merge(['company_id' => auth()->user()->company_id]);
         }
 
-        $request->merge([
-            'cuil' => preg_replace('/\D+/', '', (string) $request->input('cuil')),
-        ]);
+    $request->merge([
+        'cuil' => preg_replace('/\D+/', '', (string) $request->input('cuil')),
+        'telefono' => $request->filled('telefono')
+            ? preg_replace('/[^\d+]/', '', (string) $request->input('telefono'))
+            : null,
+    ]);
     }
 
     public function store(Request $request)
@@ -142,6 +145,7 @@ class UserController extends Controller
 
             'roles'   => ['nullable', 'array'],
             'roles.*' => ['string', 'exists:roles,name'],
+            'telefono' => ['nullable', 'string', 'max:30'],
         ]);
 
         if ($request->hasFile('imagen')) {
@@ -161,6 +165,7 @@ class UserController extends Controller
             'fecha_nacimiento' => $data['fecha_nacimiento'] ?? null,
             'activo'           => array_key_exists('activo', $data) ? (bool)$data['activo'] : true,
             'imagen'           => $data['imagen'] ?? null,
+            'telefono'         => $data['telefono'] ?? null,
         ]);
 
         $user->syncRoles($data['roles'] ?? []);
@@ -239,6 +244,7 @@ class UserController extends Controller
 
             'roles'   => ['nullable', 'array'],
             'roles.*' => ['string', 'exists:roles,name'],
+            'telefono' => ['nullable', 'string', 'max:30'],
         ]);
 
         $updateData = [
@@ -251,6 +257,7 @@ class UserController extends Controller
             'provincia_id'     => $data['provincia_id'] ?? null,
             'localidad_id'     => $data['localidad_id'] ?? null,
             'fecha_nacimiento' => $data['fecha_nacimiento'] ?? null,
+            'telefono'         => $data['telefono'] ?? null,
             'activo'           => array_key_exists('activo', $data) ? (bool)$data['activo'] : (bool)$user->activo,
         ];
 

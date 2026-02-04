@@ -8,6 +8,14 @@
   .mat-sort{display:inline-flex;align-items:center;gap:.25rem;cursor:pointer;text-decoration:none;}
   .mat-sort .sort-icon{font-size:.9rem;opacity:.6;}
   .mat-sort.active{font-weight:600;}
+
+  .user-avatar {
+    width: 32px; height: 32px;
+    object-fit: cover;
+    border-radius: 999px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.15);
+    border: 1px solid rgba(0,0,0,.08);
+  }
 </style>
 
 <div class="card mat-card">
@@ -51,7 +59,7 @@
       </div>
 
       <div class="col-6 col-md-1">
-        <label class="form-label">Per</label>
+        <label class="form-label">Pag</label>
         <select name="per" class="form-select">
           @foreach([10,15,25,50,100] as $opt)
             <option value="{{ $opt }}" @selected((int)request('per',15)===$opt)>{{ $opt }}</option>
@@ -95,9 +103,32 @@
     @endphp
 
     <div class="table-responsive">
+
+@php
+  function wa_link_user($user) {
+    if (!$user->telefono) return null;
+
+    $telefono = preg_replace('/\D+/', '', $user->telefono);
+
+    $mensaje = "Hola {$user->name}!\n\n"
+      ."Te comparto tu acceso a la app Mis Puntos\n\n"
+      ."Link de acceso:\nhttps://mispuntos.planidear.com.ar\n\n"
+      ."Usuario:\n{$user->email}\n\n"
+      ."Por seguridad, la contraseña inicial es tu DNI (solo números, sin puntos).\n"
+      ."Te recomendamos cambiarla desde el menú \"Perfil > Cambiar contraseña\" en tu primer ingreso.\n\n"
+      ."Cualquier duda, escribime por acá.";
+
+    return "https://wa.me/{$telefono}?text=" . urlencode($mensaje);
+  }
+@endphp
+
+
       <table class="table align-middle mb-0">
         <thead class="table-light">
           <tr>
+
+            <th style="width:52px;">Foto</th>
+
             <th>
               <a class="{{ sort_class_users('name') }}" href="{{ sort_url_users('name') }}">
                 Nombre {!! sort_icon_users('name') !!}
@@ -109,6 +140,8 @@
     Email {!! sort_icon_users('email') !!}
   </a>
 </th>
+
+<th>Teléfono</th>
 
 <th>Empresa</th>
 
@@ -126,8 +159,19 @@
         <tbody>
           @forelse($users as $user)
             <tr>
+
+  <td>
+    @if($user->imagen)
+      <a href="{{ route('abm.users.show', $user) }}" title="Ver usuario">
+        <img src="{{ Storage::url($user->imagen) }}" class="user-avatar" alt="Foto de {{ $user->name }}">
+      </a>
+    @endif
+  </td>
+
               <td class="fw-semibold">{{ $user->name }}</td>
 <td>{{ $user->email }}</td>
+
+<td>{{ $user->telefono ?? '—' }}</td>
 
 <td>
   <span class="badge text-bg-light">
@@ -152,14 +196,31 @@
                 @endif
               </td>
               <td class="text-end">
-                <div class="btn-group" role="group">
-                  <a href="{{ route('abm.users.show', $user) }}" class="btn btn-outline-secondary btn-sm btn-mat">Ver</a>
-                  <a href="{{ route('abm.users.edit', $user) }}" class="btn btn-outline-primary btn-sm btn-mat">Edit</a>
-                </div>
+<div class="btn-group" role="group">
+  <a href="{{ route('abm.users.show', $user) }}"
+     class="btn btn-outline-secondary btn-sm btn-mat">
+    Ver
+  </a>
+
+  <a href="{{ route('abm.users.edit', $user) }}"
+     class="btn btn-outline-primary btn-sm btn-mat">
+    Editar
+  </a>
+
+  @if($user->telefono)
+    <a href="{{ wa_link_user($user) }}"
+       target="_blank"
+       class="btn btn-success btn-sm btn-mat"
+       title="Enviar acceso por WhatsApp">
+      <i class="bi bi-whatsapp"></i>
+    </a>
+  @endif
+</div>
+
               </td>
             </tr>
           @empty
-            <tr><td colspan="6" class="text-center text-muted py-4">No usuarios</td></tr>
+            <tr><td colspan="9" class="text-center text-muted py-4">No usuarios</td></tr>
           @endforelse
         </tbody>
       </table>
