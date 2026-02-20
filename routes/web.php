@@ -223,9 +223,17 @@ Route::middleware(['auth'])->group(function () {
         ->name('abm.')
         ->group(function () {
 
-            Route::resource('paises', PaisController::class);
-            Route::resource('provincias', ProvinciaController::class);
-            Route::resource('localidades', LocalidadController::class);
+            Route::resource('paises', PaisController::class)
+                ->parameters(['paises' => 'pais'])
+                ->names('paises');
+
+            Route::resource('provincias', ProvinciaController::class)
+                ->parameters(['provincias' => 'provincia'])
+                ->names('provincias');
+
+            Route::resource('localidades', LocalidadController::class)
+                ->parameters(['localidades' => 'localidad'])
+                ->names('localidades');
 
             // Users (ABM a mano)
             Route::get('users', [UserController::class, 'index'])->name('users.index');

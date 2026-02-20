@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Abm;
 
 use App\Http\Controllers\Controller;
 use App\Models\Localidad;
-use App\Models\Pais;
 use App\Models\Provincia;
 use Illuminate\Http\Request;
 
@@ -12,32 +11,34 @@ class LocalidadController extends Controller
 {
     public function __construct()
     {
-         $this->middleware('role:admin_sitio|admin_empresa');
+        $this->middleware('role:admin_sitio|admin_empresa');
     }
 
     public function index(Request $request)
     {
         $q = $request->string('q')->toString();
 
+        $editId = $request->query('edit');
+        $localidadEdit = $editId ? Localidad::with(['provincia.pais'])->find($editId) : null;
+
+        // Para el combo del form
+        $provincias = Provincia::with('pais')->orderBy('nombre')->get();
+
         $localidades = Localidad::query()
             ->with(['provincia.pais'])
-            ->when($q, function ($qq) use ($q) {
-                $qq->where('nombre', 'like', "%{$q}%")
-                   ->orWhere('cp', 'like', "%{$q}%")
-                   ->orWhereHas('provincia', fn($p) => $p->where('nombre', 'like', "%{$q}%"))
-                   ->orWhereHas('provincia.pais', fn($pa) => $pa->where('nombre', 'like', "%{$q}%"));
+            ->when($q, function ($query) use ($q) {
+                $query->where(function ($sub) use ($q) {
+                    $sub->where('nombre', 'like', "%{$q}%")
+                        ->orWhere('cp', 'like', "%{$q}%")
+                        ->orWhereHas('provincia', fn($p) => $p->where('nombre', 'like', "%{$q}%"))
+                        ->orWhereHas('provincia.pais', fn($pa) => $pa->where('nombre', 'like', "%{$q}%"));
+                });
             })
             ->orderBy('nombre')
             ->paginate(15)
             ->withQueryString();
 
-        return view('abm.localidades.index', compact('localidades', 'q'));
-    }
-
-    public function create()
-    {
-    $provincias = Provincia::with('pais')->orderBy('nombre')->get();
-    return view('abm.localidades.create', compact('provincias'));
+        return view('abm.localidades.index', compact('localidades', 'q', 'provincias', 'localidadEdit'));
     }
 
     public function store(Request $request)
@@ -48,23 +49,15 @@ class LocalidadController extends Controller
             'cp'           => ['nullable', 'string', 'max:12'],
         ]);
 
-        Localidad::create($data);
+        Localidad::create([
+            'provincia_id' => $data['provincia_id'],
+            'nombre'       => trim($data['nombre']),
+            'cp'           => isset($data['cp']) ? trim($data['cp']) : null,
+        ]);
 
         return redirect()
             ->route('abm.localidades.index')
-            ->with('success', 'Localidad created successfully.');
-    }
-
-    public function show(Localidad $localidad)
-    {
-        $localidad->load(['provincia.pais']);
-        return view('abm.localidades.show', compact('localidad'));
-    }
-
-    public function edit(Localidad $localidad)
-    {
-    $provincias = Provincia::with('pais')->orderBy('nombre')->get();
-    return view('abm.localidades.edit', compact('localidad','provincias'));
+            ->with('success', 'Localidad creada correctamente.');
     }
 
     public function update(Request $request, Localidad $localidad)
@@ -75,19 +68,29 @@ class LocalidadController extends Controller
             'cp'           => ['nullable', 'string', 'max:12'],
         ]);
 
-        $localidad->update($data);
+        $localidad->update([
+            'provincia_id' => $data['provincia_id'],
+            'nombre'       => trim($data['nombre']),
+            'cp'           => isset($data['cp']) ? trim($data['cp']) : null,
+        ]);
 
         return redirect()
             ->route('abm.localidades.index')
-            ->with('success', 'Localidad updated successfully.');
+            ->with('success', 'Localidad actualizada correctamente.');
     }
 
     public function destroy(Localidad $localidad)
     {
-        $localidad->delete();
+        try {
+            $localidad->delete();
 
-        return redirect()
-            ->route('abm.localidades.index')
-            ->with('success', 'Localidad deleted successfully.');
+            return redirect()
+                ->route('abm.localidades.index')
+                ->with('success', 'Localidad eliminada correctamente.');
+        } catch (\Throwable $e) {
+            return redirect()
+                ->route('abm.localidades.index')
+                ->with('error', 'No se puede eliminar: la localidad está asociada a otros registros.');
+        }
     }
 }

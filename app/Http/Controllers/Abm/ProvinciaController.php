@@ -11,32 +11,31 @@ class ProvinciaController extends Controller
 {
     public function __construct()
     {
-         $this->middleware('role:admin_sitio|admin_empresa');
+        $this->middleware('role:admin_sitio|admin_empresa');
     }
 
     public function index(Request $request)
     {
         $q = $request->string('q')->toString();
 
+        $editId = $request->query('edit');
+        $provinciaEdit = $editId ? Provincia::with('pais')->find($editId) : null;
+
+        $paises = Pais::orderBy('nombre')->get();
+
         $provincias = Provincia::query()
             ->with('pais')
-            ->when($q, function ($qq) use ($q) {
-                $qq->where('nombre', 'like', "%{$q}%")
-                   ->orWhereHas('pais', fn ($p) =>
-                        $p->where('nombre', 'like', "%{$q}%")
-                   );
+            ->when($q, function ($query) use ($q) {
+                $query->where(function ($sub) use ($q) {
+                    $sub->where('nombre', 'like', "%{$q}%")
+                        ->orWhereHas('pais', fn ($p) => $p->where('nombre', 'like', "%{$q}%"));
+                });
             })
             ->orderBy('nombre')
             ->paginate(15)
             ->withQueryString();
 
-        return view('abm.provincias.index', compact('provincias', 'q'));
-    }
-
-    public function create()
-    {
-        $paises = Pais::orderBy('nombre')->get();
-        return view('abm.provincias.create', compact('paises'));
+        return view('abm.provincias.index', compact('provincias', 'q', 'paises', 'provinciaEdit'));
     }
 
     public function store(Request $request)
@@ -46,23 +45,14 @@ class ProvinciaController extends Controller
             'nombre'  => ['required', 'string', 'max:100'],
         ]);
 
-        Provincia::create($data);
+        Provincia::create([
+            'pais_id' => $data['pais_id'],
+            'nombre'  => trim($data['nombre']),
+        ]);
 
         return redirect()
             ->route('abm.provincias.index')
             ->with('success', 'Provincia creada correctamente.');
-    }
-
-    public function show(Provincia $provincia)
-    {
-        $provincia->load('pais');
-        return view('abm.provincias.show', compact('provincia'));
-    }
-
-    public function edit(Provincia $provincia)
-    {
-        $paises = Pais::orderBy('nombre')->get();
-        return view('abm.provincias.edit', compact('provincia', 'paises'));
     }
 
     public function update(Request $request, Provincia $provincia)
@@ -72,7 +62,10 @@ class ProvinciaController extends Controller
             'nombre'  => ['required', 'string', 'max:100'],
         ]);
 
-        $provincia->update($data);
+        $provincia->update([
+            'pais_id' => $data['pais_id'],
+            'nombre'  => trim($data['nombre']),
+        ]);
 
         return redirect()
             ->route('abm.provincias.index')
@@ -81,10 +74,16 @@ class ProvinciaController extends Controller
 
     public function destroy(Provincia $provincia)
     {
-        $provincia->delete();
+        try {
+            $provincia->delete();
 
-        return redirect()
-            ->route('abm.provincias.index')
-            ->with('success', 'Provincia eliminada correctamente.');
+            return redirect()
+                ->route('abm.provincias.index')
+                ->with('success', 'Provincia eliminada correctamente.');
+        } catch (\Throwable $e) {
+            return redirect()
+                ->route('abm.provincias.index')
+                ->with('error', 'No se puede eliminar: la provincia está asociada a otros registros.');
+        }
     }
 }

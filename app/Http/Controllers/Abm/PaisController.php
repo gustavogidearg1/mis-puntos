@@ -14,21 +14,25 @@ class PaisController extends Controller
     }
 
     public function index(Request $request)
-    {
-        $q = $request->string('q')->toString();
+{
+    $q = $request->string('q')->toString();
+    $editId = $request->query('edit');
+    $paisEdit = $editId ? Pais::find($editId) : null;
 
-        $paises = Pais::query()
-            ->when($q, fn ($qq) =>
-                $qq->where('nombre', 'like', "%{$q}%")
-                   ->orWhere('iso2', 'like', "%{$q}%")
-                   ->orWhere('iso3', 'like', "%{$q}%")
-            )
-            ->orderBy('nombre')
-            ->paginate(15)
-            ->withQueryString();
+    $paises = Pais::query()
+        ->when($q, function ($query) use ($q) {
+            $query->where(function ($sub) use ($q) {
+                $sub->where('nombre', 'like', "%{$q}%")
+                    ->orWhere('iso2', 'like', "%{$q}%")
+                    ->orWhere('iso3', 'like', "%{$q}%");
+            });
+        })
+        ->orderBy('nombre')
+        ->paginate(15)
+        ->withQueryString();
 
-        return view('abm.paises.index', compact('paises', 'q'));
-    }
+    return view('abm.paises.index', compact('paises', 'q', 'paisEdit'));
+}
 
     public function create()
     {
