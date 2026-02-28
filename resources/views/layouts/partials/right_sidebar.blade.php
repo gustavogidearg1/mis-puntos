@@ -277,14 +277,25 @@
   {{-- Footer --}}
   <div class="sidebar-footer mt-auto px-3 py-3">
 
-    <div class="sidebar-user"
-         @if(!$isOffcanvas) data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="{{ $u->name ?? '' }}" @endif>
-      <div class="user-dot"></div>
-      <div class="user-info">
-        <div class="user-name">{{ $u->name ?? '' }}</div>
-        <div class="user-email">{{ $u->email ?? '' }}</div>
-      </div>
+<div class="sidebar-user d-flex align-items-center gap-2"
+     @if(!$isOffcanvas) data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="{{ $u->name ?? '' }}" @endif>
+
+  <div class="user-dot"></div>
+
+  <div class="user-info flex-grow-1">
+    <div class="user-name d-flex align-items-center">
+      <i class="bi bi-person-circle me-2"></i>{{ $u->name ?? '' }}
     </div>
+    <div class="user-email">{{ $u->email ?? '' }}</div>
+  </div>
+
+  <a href="{{ route('profile.edit') }}"
+     class="btn btn-outline-secondary btn-sm"
+     title="Perfil">
+    <i class="bi bi-gear">Perfil</i>
+  </a>
+</div>
+
 
     {{-- Company (no mostrar para admin_sitio) --}}
     @if(!$isSiteAdmin)

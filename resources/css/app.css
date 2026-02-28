@@ -1,13 +1,79 @@
 @import "bootstrap/dist/css/bootstrap.min.css";
 
+/* =========================
+   TOKENS / COLORES APP
+   ========================= */
+:root{
+  /* Brand */
+  --mp-primary:   #2f5d8a; /* primario */
+  --mp-secondary: #2f7f7a; /* secundario */
 
+  --mp-bg: #F5F6F7;
+
+  /* Sidebar / Layout */
+  --sidebar-bg: var(--mp-primary);
+  --sidebar-bg-2: rgba(255,255,255,.12);
+  --sidebar-text: #ffffff;
+  --sidebar-muted: rgba(255,255,255,.80);
+  --sidebar-active: rgba(255,255,255,.20);
+
+  --topbar-bg: var(--mp-secondary);
+  --topbar-h: 64px;
+
+  --sidebar-w: 300px;
+  --sidebar-w-collapsed: 88px;
+}
+
+/* =========================
+   BOOTSTRAP THEME OVERRIDE
+   (btn-primary / btn-secondary)
+   ========================= */
+:root{
+  --bs-primary: var(--mp-primary);
+  --bs-primary-rgb: 47, 93, 138;   /* #2f5d8a */
+
+  --bs-secondary: var(--mp-secondary);
+  --bs-secondary-rgb: 47, 127, 122; /* #2f7f7a */
+
+  /* opcional: links */
+  --bs-link-color: var(--mp-primary);
+  --bs-link-hover-color: #274f76;
+}
+
+/* Botones primarios Bootstrap */
+.btn-primary{
+  --bs-btn-bg: var(--bs-primary);
+  --bs-btn-border-color: var(--bs-primary);
+  --bs-btn-hover-bg: #274f76;
+  --bs-btn-hover-border-color: #274f76;
+  --bs-btn-active-bg: #234666;
+  --bs-btn-active-border-color: #234666;
+  --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+}
+
+/* Botones secundarios Bootstrap */
+.btn-secondary{
+  --bs-btn-bg: var(--bs-secondary);
+  --bs-btn-border-color: var(--bs-secondary);
+  --bs-btn-hover-bg: #276f6a;
+  --bs-btn-hover-border-color: #276f6a;
+  --bs-btn-active-bg: #215f5a;
+  --bs-btn-active-border-color: #215f5a;
+  --bs-btn-focus-shadow-rgb: var(--bs-secondary-rgb);
+}
+
+/* =========================
+   TOOLTIP
+   ========================= */
 .tooltip .tooltip-inner{
   border-radius: 10px;
-
   padding: .45rem .6rem;
   font-weight: 600;
 }
 
+/* =========================
+   Sidebar section title (base)
+   ========================= */
 .sidebar-section-title{
   background: transparent;
   border: 0;
@@ -21,6 +87,9 @@
   box-shadow: none;
 }
 
+/* =========================
+   TOPBAR HOME LINK
+   ========================= */
 .topbar-home{
   display:flex;
   align-items:center;
@@ -38,9 +107,9 @@
   transform: translateY(1px);
 }
 
-
-
-/* ===== Material-ish cards ===== */
+/* =========================
+   MATERIAL-ish cards
+   ========================= */
 .card.mat-card{
   border: 0;
   border-radius: 16px;
@@ -61,7 +130,6 @@
   box-shadow: 0 6px 18px rgba(0,0,0,.10);
 }
 
-
 h3.mat-title{
   font-size: 1.05rem;
   margin: 0;
@@ -74,19 +142,9 @@ h3.mat-title{
   box-shadow: 0 6px 18px rgba(0,0,0,.10);
 }
 
-/* ===== App Shell Layout (Topbar + Content + Right Sidebar) ===== */
-:root{
-  --sidebar-bg: #2f5d8a;
-  --sidebar-bg-2: rgba(255,255,255,.12);
-  --sidebar-text: #ffffff;
-  --sidebar-muted: rgba(255,255,255,.80);
-  --sidebar-active: rgba(255,255,255,.20);
-  --topbar-h: 64px;
-
-  --sidebar-w: 300px;
-  --sidebar-w-collapsed: 88px;
-}
-
+/* =========================
+   APP SHELL LAYOUT
+   ========================= */
 .app-shell{
   min-height: 100vh;
   display: grid;
@@ -97,17 +155,18 @@ h3.mat-title{
     "content sidebar";
 }
 
-/* Topbar */
+/* =========================
+   TOPBAR
+   ========================= */
 .topbar{
-     background: #2f7f7a;
-  border-bottom: 2px solid rgba(245, 236, 236, 0.933);
+  background: var(--topbar-bg);
+  border-bottom: 2px solid rgba(246, 243, 241, 0.18);
   grid-area: topbar;
   height: var(--topbar-h);
   position: sticky;
   top: 0;
   z-index: 1030;
 
-  border-bottom: 2px solid rgba(246, 243, 241, 0.18);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -118,6 +177,7 @@ h3.mat-title{
 .topbar .topbar-home *{
   color: #F5F6F7 !important;
 }
+
 .topbar-title .company-name{
   color: rgba(255,255,255,.75);
 }
@@ -143,13 +203,11 @@ h3.mat-title{
   display:flex;
   align-items:center;
   justify-content:center;
-     background: #F5F6F7;
-
+  background: var(--mp-bg);
   box-shadow: 0 6px 16px rgba(0,0,0,.08);
 }
 
 .topbar-title .app-name{
-
   font-weight: 800;
   line-height: 1.05;
 }
@@ -160,13 +218,17 @@ h3.mat-title{
   margin-top: 2px;
 }
 
-/* Content */
+/* =========================
+   CONTENT
+   ========================= */
 .app-content{
   grid-area: content;
   min-width: 0;
 }
 
-/* Right Sidebar Desktop */
+/* =========================
+   RIGHT SIDEBAR DESKTOP
+   ========================= */
 .right-sidebar{
   grid-area: sidebar;
   position: sticky;
@@ -176,15 +238,17 @@ h3.mat-title{
   align-self: start;
 }
 
-/* Sidebar */
+/* =========================
+   SIDEBAR
+   ========================= */
 .sidebar-nav{
   width: 100%;
   height: 100%;
-    background: linear-gradient(180deg, #2f5d8a 0%, #0f172a 100%);
+  background: linear-gradient(180deg, var(--mp-primary) 0%, #0f172a 100%);
   color: var(--sidebar-text);
   display:flex;
   flex-direction: column;
-    overflow-y: auto;
+  overflow-y: auto;
   overflow-x: hidden;
 }
 
@@ -263,7 +327,9 @@ h3.mat-title{
   margin-top: 2px;
 }
 
-/* Offcanvas custom look */
+/* =========================
+   OFFCANVAS custom look
+   ========================= */
 .sidebar-offcanvas{
   background: var(--sidebar-bg);
   color: var(--sidebar-text);
@@ -281,13 +347,14 @@ h3.mat-title{
   opacity: .9;
 }
 
-
-/* ===== Collapsed sidebar (desktop) ===== */
+/* =========================
+   COLLAPSED SIDEBAR (desktop)
+   ========================= */
 .app-shell.sidebar-collapsed{
   grid-template-columns: 1fr var(--sidebar-w-collapsed);
 }
 
-/* ===== Collapsed sidebar (desktop ONLY) ===== */
+/* Collapsed sidebar (desktop ONLY) */
 .app-shell.sidebar-collapsed #rightSidebar .sidebar-section-title,
 .app-shell.sidebar-collapsed #rightSidebar .brand-text,
 .app-shell.sidebar-collapsed #rightSidebar .link-text,
@@ -309,12 +376,13 @@ h3.mat-title{
   justify-content:center;
 }
 
-
 .app-shell.sidebar-collapsed .sidebar-user{
   justify-content:center;
 }
 
-/* ===== Responsive: on < lg, sidebar is offcanvas; content full width ===== */
+/* =========================
+   RESPONSIVE
+   ========================= */
 @media (max-width: 991.98px){
   .app-shell{
     grid-template-columns: 1fr;
@@ -324,4 +392,3 @@ h3.mat-title{
       "content";
   }
 }
-

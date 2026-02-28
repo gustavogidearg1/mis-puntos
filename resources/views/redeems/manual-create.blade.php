@@ -90,16 +90,25 @@
   </div>
 </div>
 
-{{-- ============================
-   MODAL: Loading al confirmar consumo
-   ============================ --}}
-<div class="modal fade" id="loadingModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+{{-- MODAL: Enviando consumo --}}
+<div class="modal fade" id="modalSubmittingRedeem" tabindex="-1" aria-hidden="true"
+     data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" style="border-radius:16px;">
-      <div class="modal-body p-4 text-center">
-        <div class="spinner-border" role="status" aria-hidden="true"></div>
-        <div class="mt-3 fw-semibold">Procesando consumo…</div>
-        <div class="text-muted small">Estamos registrando el consumo y enviando notificaciones.</div>
+      <div class="modal-body p-4">
+        <div class="d-flex align-items-start gap-3">
+          <div class="spinner-border" role="status" aria-label="Enviando"></div>
+
+          <div class="flex-grow-1">
+            <div class="fw-bold" style="font-size:1.05rem;">Procesando el consumo…</div>
+            <div class="text-muted mt-1">
+              Por favor <b>no cierres esta pantalla</b>. Esto puede demorar unos segundos.
+            </div>
+            <div class="text-muted small mt-2">
+              Si refrescás o volvés atrás, el consumo podría no guardarse correctamente.
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -108,66 +117,63 @@
 
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-  const saldo = {{ (int)$saldo }};
-  const form = document.getElementById('manualForm');
-  const pointsInput = document.getElementById('pointsInput');
-  const warnSaldo = document.getElementById('warnSaldo');
+(function(){
+  const form      = document.getElementById('manualForm');
   const submitBtn = document.getElementById('submitBtn');
-  const restara = document.getElementById('restara');
+  const modalEl   = document.getElementById('modalSubmittingRedeem');
 
-  function updateSaldoUI(){
-    const val = parseInt(pointsInput.value || '0', 10);
-    const safeVal = isNaN(val) ? 0 : val;
+  if (!form || !submitBtn || !modalEl) return;
 
-    restara.textContent = safeVal.toLocaleString('es-AR');
-
-    const tooMuch = safeVal > saldo;
-    warnSaldo.style.display = tooMuch ? 'block' : 'none';
-
-    const invalid = (safeVal < 1 || tooMuch);
-    submitBtn.disabled = invalid;
-  }
-
-  pointsInput.addEventListener('input', updateSaldoUI);
-  updateSaldoUI();
-
-  // ============================
-  // Loading modal al enviar
-  // ============================
   let submitting = false;
 
-  form?.addEventListener('submit', (e) => {
-    if (submitting) return; // evita loop
-    e.preventDefault();
+  form.addEventListener('submit', function(ev){
+    // evita doble submit
+    if (submitting) {
+      ev.preventDefault();
+      return;
+    }
 
-    // si está disabled por saldo / min, no mandamos
-    if (submitBtn.disabled) return;
+    // si el HTML5 form no es válido, que el browser muestre los mensajes
+    if (!form.checkValidity()) {
+      return; // no preventDefault
+    }
+
+    // si el botón ya estaba disabled (por saldo insuficiente), no mandamos
+    if (submitBtn.disabled) {
+      ev.preventDefault();
+      return;
+    }
 
     submitting = true;
+
+    // bloquea UI
     submitBtn.disabled = true;
+    submitBtn.classList.add('disabled');
     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Enviando…';
 
-    try {
-      const modalEl = document.getElementById('loadingModal');
-      if (modalEl && window.bootstrap?.Modal) {
-        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-        modal.show();
+    // mostrar modal (sin depender de window.bootstrap)
+    // truco: "click" a un botón temporal con data-bs-toggle
+    const tmp = document.createElement('button');
+    tmp.type = 'button';
+    tmp.setAttribute('data-bs-toggle', 'modal');
+    tmp.setAttribute('data-bs-target', '#modalSubmittingRedeem');
+    tmp.style.display = 'none';
+    document.body.appendChild(tmp);
+    tmp.click();
+    tmp.remove();
 
-        // IMPORTANTE: darle un frame para que se renderice el modal
-        requestAnimationFrame(() => {
-          setTimeout(() => form.submit(), 80);
-        });
-      } else {
-        // fallback si no está bootstrap JS cargado
-        setTimeout(() => form.submit(), 0);
-      }
-    } catch (err) {
-      // fallback duro
-      form.submit();
-    }
+    // importante: no hacemos preventDefault -> dejamos que el submit siga normal
+    // (si quisieras asegurar render del modal, podrías hacer preventDefault y luego form.submit() con setTimeout)
   });
-});
+
+  // Si el navegador vuelve atrás (bfcache), re-habilita el botón
+  window.addEventListener('pageshow', function(){
+    submitting = false;
+    submitBtn.disabled = false;
+    submitBtn.classList.remove('disabled');
+    submitBtn.innerHTML = 'Confirmar consumo';
+  });
+})();
 </script>
 @endpush
 

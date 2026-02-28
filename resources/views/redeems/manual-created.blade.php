@@ -1,26 +1,14 @@
 @extends('layouts.app')
-@section('title','Consumo realizado')
+@section('title','Consumo manual')
 
 @section('content')
 <style>
-  @media print{
-    .topbar, .right-sidebar, .sidebar-nav { display:none !important; }
-    .btn, .no-print { display:none !important; }
-    .app-shell{ display:block !important; }
-    .app-content{ padding:0 !important; }
-    .card{ box-shadow:none !important; }
-  }
-  .qr-box{
-    background:#fff;
-    border:1px solid rgba(0,0,0,.08);
-    border-radius:16px;
-    padding:16px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-  }
-  .mono{
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  .muted-hint { color:#6c757d; font-size:.9rem; }
+
+  .saldo-chip{
+    display:inline-flex; align-items:center; gap:.5rem;
+    border-radius:999px; padding:.35rem .75rem;
+    background:#EAF2FF; color:#1e40af; font-weight:700;
   }
 </style>
 
@@ -28,109 +16,97 @@
   <div class="card mat-card">
     <div class="mat-header">
       <h3 class="mat-title mb-0">
-        <i class="bi bi-check2-circle me-2"></i> Consumo realizado (Comprobante)
+        <i class="bi bi-shop me-2"></i> Consumo manual (Empleado → Negocio)
       </h3>
+      <div class="ms-auto d-flex align-items-center gap-2">
+        <span class="saldo-chip" title="Saldo disponible">
+          <i class="bi bi-wallet2"></i> Saldo: <strong id="saldoVal">{{ number_format($saldo) }}</strong>
+        </span>
 
-      <div class="ms-auto d-flex gap-2 no-print">
-        <a href="{{ route('redeems.manual.create') }}" class="btn btn-outline-secondary btn-mat">
+        <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary btn-mat">
           <i class="bi bi-arrow-left"></i> Volver
         </a>
-
-        <button type="button" class="btn btn-outline-primary btn-mat" onclick="window.print()">
-          <i class="bi bi-printer"></i> Imprimir
-        </button>
       </div>
     </div>
 
     <div class="card-body p-4">
-      <div class="row g-4">
-        <div class="col-12 col-lg-5">
-          <div class="qr-box">
-            {!! \SimpleSoftwareIO\QrCode\Facades\QrCode::size(260)->margin(1)->generate($url) !!}
+      @if (session('error'))
+        <div class="alert alert-danger mat-alert">{{ session('error') }}</div>
+      @endif
+
+      @if ($errors->any())
+        <div class="alert alert-danger mat-alert">
+          <ul class="mb-0">
+            @foreach($errors->all() as $e)
+              <li>{{ $e }}</li>
+            @endforeach
+          </ul>
+        </div>
+      @endif
+
+      <form method="POST" action="{{ route('redeems.manual.store', $business->id) }}" id="manualForm">
+        @csrf
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Negocio</label>
+          <input class="form-control" value="{{ $business->name }}" readonly>
+        </div>
+
+        <input type="hidden" name="business_user_id" value="{{ $business->id }}">
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Puntos a consumir</label>
+          <input id="pointsInput"
+                 type="number"
+                 min="1"
+                 name="points"
+                 class="form-control @error('points') is-invalid @enderror"
+                 value="{{ old('points', 1) }}"
+                 required>
+          @error('points') <div class="invalid-feedback">{{ $message }}</div> @enderror
+
+          <div id="warnSaldo" class="alert alert-warning mt-2 mb-0" style="display:none;">
+            El valor ingresado supera tu saldo disponible.
           </div>
 
-          <div class="mt-3">
-            <label class="form-label fw-semibold mb-1">Código / Token</label>
-            <div class="input-group">
-              <input id="tokenInput" class="form-control mono" value="{{ $redemption->token }}" readonly>
-              <button class="btn btn-outline-secondary" type="button" onclick="copyText('tokenInput')">
-                <i class="bi bi-clipboard"></i> Copiar
-              </button>
-            </div>
-            <div class="form-text text-muted">
-              Este token identifica el comprobante del consumo.
-            </div>
-          </div>
-
-          <div class="mt-3">
-            <label class="form-label fw-semibold mb-1">Link del comprobante</label>
-            <div class="input-group">
-              <input id="urlInput" class="form-control" value="{{ $url }}" readonly>
-              <button class="btn btn-outline-secondary" type="button" onclick="copyText('urlInput')">
-                <i class="bi bi-clipboard"></i> Copiar
-              </button>
-            </div>
-          </div>
-
-          @php
-            $whatsText = "Comprobante de consumo de puntos.\n\n".
-                         "Negocio: ".($business->name ?? '—')."\n".
-                         "Empleado: ".($employee->name ?? '—')."\n".
-                         "Puntos: ".number_format($redemption->points)."\n".
-                         "Fecha: ".optional($movement->occurred_at)->format('d/m/Y H:i')."\n\n".
-                         "Ver comprobante:\n".$url."\n\n".
-                         "Código: ".$redemption->token;
-            $waUrl = 'https://wa.me/?text='.urlencode($whatsText);
-          @endphp
-
-          <div class="mt-3 d-flex gap-2 no-print">
-            <a class="btn btn-success btn-mat w-100" href="{{ $waUrl }}" target="_blank" rel="noopener">
-              <i class="bi bi-whatsapp"></i> Compartir WhatsApp
-            </a>
+          <div class="form-text muted-hint">
+            Se descontarán <strong id="restara">0</strong> puntos.
           </div>
         </div>
 
-        <div class="col-12 col-lg-7">
-          <div class="card mat-card">
-            <div class="mat-header">
-              <h3 class="mat-title mb-0"><i class="bi bi-info-circle me-2"></i>Detalle</h3>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Nota (opcional)</label>
+          <textarea name="note"
+                    class="form-control @error('note') is-invalid @enderror"
+                    rows="3">{{ old('note') }}</textarea>
+          @error('note') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        </div>
+
+        <button id="submitBtn" class="btn btn-primary btn-mat w-100" type="submit">
+          Confirmar consumo
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{{-- MODAL: Enviando consumo --}}
+<div class="modal fade" id="modalSubmittingRedeem" tabindex="-1" aria-hidden="true"
+     data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:16px;">
+      <div class="modal-body p-4">
+        <div class="d-flex align-items-start gap-3">
+          <div class="spinner-border" role="status" aria-label="Enviando"></div>
+
+          <div class="flex-grow-1">
+            <div class="fw-bold" style="font-size:1.05rem;">Procesando el consumo…</div>
+            <div class="text-muted mt-1">
+              Por favor <b>no cierres esta pantalla</b>. Esto puede demorar unos segundos.
             </div>
-            <div class="card-body">
-              <dl class="row mb-0">
-                <dt class="col-sm-4">Negocio</dt>
-                <dd class="col-sm-8">{{ $business->name ?? '—' }}</dd>
-
-                <dt class="col-sm-4">Empleado</dt>
-                <dd class="col-sm-8">{{ $employee->name ?? '—' }}</dd>
-
-                <dt class="col-sm-4">Puntos</dt>
-                <dd class="col-sm-8"><strong>{{ number_format($redemption->points) }}</strong></dd>
-
-                <dt class="col-sm-4">Fecha</dt>
-                <dd class="col-sm-8">
-                  {{ optional($movement->occurred_at)->format('d/m/Y H:i') ?? '—' }}
-                </dd>
-
-                <dt class="col-sm-4">Referencia</dt>
-                <dd class="col-sm-8">
-                  <span class="badge bg-light text-dark">{{ $movement->reference ?? '—' }}</span>
-                </dd>
-
-                <dt class="col-sm-4">Nota</dt>
-                <dd class="col-sm-8">{{ $movement->note ?? '—' }}</dd>
-              </dl>
-
-              <div class="alert alert-success mt-3 mb-0">
-                El consumo <strong>ya fue descontado</strong> del saldo del empleado.
-              </div>
+            <div class="text-muted small mt-2">
+              Si refrescás o volvés atrás, el consumo podría no guardarse correctamente.
             </div>
-          </div>
-
-          {{-- Opcional: link a movimientos del empleado --}}
-          <div class="mt-3 no-print">
-            <a class="btn btn-outline-secondary btn-mat" href="{{ route('points.index') }}">
-              <i class="bi bi-wallet2"></i> Ver movimientos
-            </a>
           </div>
         </div>
       </div>
@@ -138,13 +114,68 @@
   </div>
 </div>
 
+
+@push('scripts')
 <script>
-function copyText(id){
-  const el = document.getElementById(id);
-  if(!el) return;
-  el.select();
-  el.setSelectionRange(0, 99999);
-  navigator.clipboard?.writeText(el.value);
-}
+(function(){
+  const form      = document.getElementById('manualForm');
+  const submitBtn = document.getElementById('submitBtn');
+  const modalEl   = document.getElementById('modalSubmittingRedeem');
+
+  if (!form || !submitBtn || !modalEl) return;
+
+  let submitting = false;
+
+  form.addEventListener('submit', function(ev){
+    // evita doble submit
+    if (submitting) {
+      ev.preventDefault();
+      return;
+    }
+
+    // si el HTML5 form no es válido, que el browser muestre los mensajes
+    if (!form.checkValidity()) {
+      return; // no preventDefault
+    }
+
+    // si el botón ya estaba disabled (por saldo insuficiente), no mandamos
+    if (submitBtn.disabled) {
+      ev.preventDefault();
+      return;
+    }
+
+    submitting = true;
+
+    // bloquea UI
+    submitBtn.disabled = true;
+    submitBtn.classList.add('disabled');
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Enviando…';
+
+    // mostrar modal (sin depender de window.bootstrap)
+    // truco: "click" a un botón temporal con data-bs-toggle
+    const tmp = document.createElement('button');
+    tmp.type = 'button';
+    tmp.setAttribute('data-bs-toggle', 'modal');
+    tmp.setAttribute('data-bs-target', '#modalSubmittingRedeem');
+    tmp.style.display = 'none';
+    document.body.appendChild(tmp);
+    tmp.click();
+    tmp.remove();
+
+    // importante: no hacemos preventDefault -> dejamos que el submit siga normal
+    // (si quisieras asegurar render del modal, podrías hacer preventDefault y luego form.submit() con setTimeout)
+  });
+
+  // Si el navegador vuelve atrás (bfcache), re-habilita el botón
+  window.addEventListener('pageshow', function(){
+    submitting = false;
+    submitBtn.disabled = false;
+    submitBtn.classList.remove('disabled');
+    submitBtn.innerHTML = 'Confirmar consumo';
+  });
+})();
 </script>
+@endpush
+
+
 @endsection

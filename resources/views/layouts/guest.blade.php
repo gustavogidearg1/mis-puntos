@@ -4,17 +4,23 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="csrf-token" content="{{ csrf_token() }}">
-  <title>@yield('title', config('app.name','MisPuntos'))</title>
+ <meta name="apple-mobile-web-app-title" content="Mis Puntos">
+
+{{-- Favicon + iOS icon (versionado anti-cache) --}}
+<link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico?v=20260220') }}">
+<link rel="shortcut icon" type="image/x-icon" href="{{ asset('favicon.ico?v=20260220') }}">
+<link rel="apple-touch-icon" sizes="180x180" href="{{ asset('icons/icon-180.png?v=20260220') }}">
 
   {{-- ===== PWA / Manifest ===== --}}
   <link rel="manifest" href="{{ asset('manifest.json') }}">
-  <meta name="theme-color" content="#0d6efd">
+ <meta name="theme-color" content="#FF9900">
+
   <meta name="mobile-web-app-capable" content="yes">
 
   {{-- iOS (Safari) --}}
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="MisPuntos">
+  <meta name="apple-mobile-web-app-title" content="Mis-Puntos">
   <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('icons/icon-180.png') }}">
   <link rel="apple-touch-icon" href="{{ asset('icons/icon-192.png') }}">
 
