@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="csrf-token" content="{{ csrf_token() }}">
 
-  <title>{{ config('app.name', 'MisPuntos') }}</title>
+  <title>{{ config('app.name', 'Club Comofra') }}</title>
 
   @vite(['resources/css/app.css','resources/js/app.js'])
 
@@ -81,7 +81,7 @@
               </div>
 
               <div>
-                <h1 class="mat-title">{{ config('app.name','MisPuntos') }}</h1>
+                <h1 class="mat-title">{{ config('app.name','Club Comofra') }}</h1>
 
               </div>
 
@@ -176,8 +176,8 @@
 
             <div class="card-footer bg-white border-0 pt-0 pb-4 px-4 px-lg-5">
               <div class="small muted">
-                © {{ date('Y') }} {{ config('app.name','MisPuntos') }} ·
-                <span class="text-nowrap">Hecho con Laravel</span>
+                © {{ date('Y') }} {{ config('app.name','Club Comofra') }} ·
+                <span class="text-nowrap">creado idear</span>
               </div>
             </div>
 

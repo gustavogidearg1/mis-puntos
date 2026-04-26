@@ -16,19 +16,28 @@
     box-shadow: 0 1px 4px rgba(0,0,0,.15);
     border: 1px solid rgba(0,0,0,.08);
   }
+
+  .email-cell{
+  max-width: 260px;              /* ajustá a gusto (220–320 suele ir bien) */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 </style>
 
 <div class="card mat-card">
-  <div class="mat-header">
-    <h3 class="mat-title mb-0"><i class="bi bi-people"></i> Usuarios</h3>
+<div class="ms-auto d-flex gap-2">
+<a href="{{ route('abm.users.export', request()->query()) }}"
+   class="btn btn-outline-success btn-mat btn-sm">
+  <i class="bi bi-file-earmark-excel"></i> Exportar
+</a>
 
-    <div class="ms-auto d-flex gap-2">
-      <a href="{{ route('abm.users.create') }}" class="btn btn-primary btn-mat btn-sm">
-        <i class="bi bi-plus-circle"></i> Nuevo
-      </a>
-    </div>
-  </div>
 
+
+  <a href="{{ route('abm.users.create') }}" class="btn btn-primary btn-mat btn-sm">
+    <i class="bi bi-plus-circle"></i> Nuevo
+  </a>
+</div>
   <div class="card-body">
 
     {{-- Filters --}}
@@ -53,8 +62,8 @@
         <label class="form-label">Active</label>
         <select name="activo" class="form-select">
           <option value="">—</option>
-          <option value="1" @selected(request('activo')==='1')>Yes</option>
-          <option value="0" @selected(request('activo')==='0')>No</option>
+<option value="1" @selected(request('activo', '1') === '1')>Si</option>
+<option value="0" @selected(request('activo') === '0')>No</option>
         </select>
       </div>
 
@@ -111,10 +120,10 @@
     $telefono = preg_replace('/\D+/', '', $user->telefono);
 
     $mensaje = "Hola {$user->name}!\n\n"
-      ."Te comparto tu acceso a la app Mis Puntos\n\n"
-      ."Link de acceso:\nhttps://mispuntos.planidear.com.ar\n\n"
+      ."Te comparto tu acceso a la app Club Comofra\n\n"
+      ."Link de acceso:\nhttps://club-comofra.comofrasrl.com.ar/\n\n"
       ."Usuario:\n{$user->email}\n\n"
-      ."Por seguridad, la contraseña inicial es tu DNI (solo números, sin puntos).\n"
+      ."Por seguridad, la contraseña inicial es tu CUIL o DNI (solo números, sin puntos).\n"
       ."Te recomendamos cambiarla desde el menú \"Perfil > Cambiar contraseña\" en tu primer ingreso.\n\n"
       ."Cualquier duda, escribime por acá.";
 
@@ -143,7 +152,7 @@
 
 <th>Teléfono</th>
 
-<th>Empresa</th>
+{{-- <th>Empresa</th> --}}
 
 <th>DNI</th>
             <th>Roles</th>
@@ -169,17 +178,22 @@
   </td>
 
               <td class="fw-semibold">{{ $user->name }}</td>
-<td>{{ $user->email }}</td>
+<td>
+  <span class="email-cell d-inline-block" title="{{ $user->email }}">
+    {{ $user->email }}
+  </span>
+</td>
 
 <td>{{ $user->telefono ?? '—' }}</td>
 
+{{--
 <td>
   <span class="badge text-bg-light">
     <i class="bi bi-buildings me-1"></i>
     {{ $user->company?->name ?? '—' }}
   </span>
 </td>
-
+--}}
 <td>{{ $user->cuil ?? '—' }}</td>
               <td>
                 @forelse($user->roles as $role)

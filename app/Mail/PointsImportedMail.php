@@ -22,7 +22,7 @@ class PointsImportedMail extends Mailable
     public function build()
     {
         return $this
-            ->subject('Se actualizaron tus puntos en MisPuntos')
+            ->subject('Se actualizaron tus puntos en Club Comofra')
             ->markdown('emails.points.imported', [
                 'user'       => $this->user,
                 'batch'      => $this->batch,

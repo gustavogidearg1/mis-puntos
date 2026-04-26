@@ -18,7 +18,7 @@ class UserRegisteredMail extends Mailable
     public function build()
     {
         return $this
-            ->subject('Tu usuario fue creado en MisPuntos')
+            ->subject('Tu usuario fue creado en Club-Comofra')
             ->markdown('emails.users.registered', [
                 'user' => $this->user,
             ]);
