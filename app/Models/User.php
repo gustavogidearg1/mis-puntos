@@ -45,6 +45,21 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Localidad::class);
     }
+
+    public function getDireccionCompletaAttribute()
+{
+    $partes = [
+        $this->direccion,
+        $this->localidad?->nombre,
+        $this->provincia?->nombre,
+        $this->pais?->nombre,
+    ];
+
+    return collect($partes)
+        ->filter() // elimina null/vacíos
+        ->implode(', ');
+}
+
     public function pointMovements()
     {
         return $this->hasMany(PointMovement::class, 'employee_user_id');
@@ -65,6 +80,16 @@ public function redemptionsAsBusiness()
 {
     return $this->hasMany(\App\Models\PointRedemption::class, 'business_user_id');
 }
+
+
+
+
+public function ofertas()
+{
+    return $this->hasMany(\App\Models\Oferta::class);
+}
+
+
 
 
 }
