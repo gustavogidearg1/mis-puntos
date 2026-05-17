@@ -23,10 +23,10 @@ class RedemptionController extends Controller
        Helpers
     ========================================================= */
 
-    private function saldoEmpleado(int $employeeUserId): int
-    {
-        return (int) PointMovement::where('employee_user_id', $employeeUserId)->sum('points');
-    }
+private function saldoEmpleado(int $employeeUserId): float
+{
+    return round((float) PointMovement::where('employee_user_id', $employeeUserId)->sum('points'), 2);
+}
 
     private function assertUserIsBusiness(User $u): bool
     {
@@ -266,6 +266,7 @@ try {
         }
 
         $businesses = User::query()
+            ->where('activo', true)
             ->whereHas('roles', fn($q) => $q->where('name', 'negocio'))
             ->when(!empty($user->company_id), fn($q) => $q->where('company_id', $user->company_id))
             ->orderBy('name')
@@ -322,14 +323,14 @@ try {
         }
 
         $data = $request->validate([
-            'points' => ['required','integer','min:1'],
+            'points' => ['required', 'numeric', 'min:0.01'],
             'note'   => ['nullable','string','max:500'],
         ], [], [
             'points' => 'puntos',
             'note'   => 'nota',
         ]);
 
-        $pointsToRedeem = (int) $data['points'];
+        $pointsToRedeem = round((float) $data['points'], 2);
 
         $result = DB::transaction(function () use ($user, $business, $pointsToRedeem, $data) {
 
