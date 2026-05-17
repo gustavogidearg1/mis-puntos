@@ -35,10 +35,11 @@ class MovimientoPuntosCreado extends Notification
         $origenTexto = 'Carga manual';
 
         // Puntos con signo bonito
-        $pts = (int) ($m->points ?? 0);
-        $ptsTexto = $pts >= 0
-            ? ('+' . number_format($pts, 0, ',', '.'))
-            : ('-' . number_format(abs($pts), 0, ',', '.'));
+$pts = (float) ($m->points ?? 0);
+
+$ptsTexto = $pts >= 0
+    ? ('+' . number_format(abs($pts), 2, ',', '.'))
+    : ('-' . number_format(abs($pts), 2, ',', '.'));
 
         // Quién lo creó (si está cargado)
         $creadoPor = null;
@@ -49,9 +50,9 @@ class MovimientoPuntosCreado extends Notification
         $fechaTxt = optional($m->occurred_at)->format('d/m/Y H:i');
 
         return (new MailMessage)
-            ->subject('MisPuntos - ' . $origenTexto . ' (' . $tipoTexto . ')')
-            ->greeting('Hola ' . ($notifiable->name ?? '') . ' 👋')
-            ->line('Se registró un movimiento en tu cuenta de puntos por **Carga manual**.')
+            ->subject('Mis Puntos - ' . $origenTexto . ' (' . $tipoTexto . ')')
+            ->greeting('Hola ' . ($notifiable->name ?? '') )
+            ->line('Se registro un movimiento en tu cuenta de puntos por **Carga manual**.')
             ->line('Tipo: ' . $tipoTexto)
             ->line('Puntos: ' . $ptsTexto)
             ->line('Fecha: ' . $fechaTxt)
@@ -59,6 +60,6 @@ class MovimientoPuntosCreado extends Notification
             ->when(!empty($m->reference), fn ($msg) => $msg->line('Referencia: ' . $m->reference))
             ->when(!empty($m->note), fn ($msg) => $msg->line('Detalle: ' . $m->note))
             ->action('Ver mis movimientos', route('points.index'))
-            ->salutation('Saludos, MisPuntos');
+            ->salutation('Saludos, Mis Puntos');
     }
 }
